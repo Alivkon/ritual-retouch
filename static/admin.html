@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #1c1c1e);
+    --bg2: var(--tg-theme-secondary-bg-color, #2c2c2e);
+    --text: var(--tg-theme-text-color, #ffffff);
+    --hint: var(--tg-theme-hint-color, #8e8e93);
+    --btn: var(--tg-theme-button-color, #007aff);
+    --btn-text: var(--tg-theme-button-text-color, #ffffff);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    padding: 12px;
+  }
+  h1 { font-size: 18px; margin-bottom: 12px; font-weight: 600; }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .stat-card .label { color: var(--hint); font-size: 11px; margin-bottom: 4px; }
+  .stat-card .value { font-size: 22px; font-weight: 700; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab-btn {
+    flex: 1; padding: 8px 4px; border-radius: 10px;
+    border: none; background: var(--bg2); color: var(--hint);
+    cursor: pointer; font-size: 13px; font-weight: 500;
+  }
+  .tab-btn.active { background: var(--btn); color: var(--btn-text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; color: var(--hint); padding: 6px 4px;
+    border-bottom: 1px solid var(--bg2); font-weight: 500;
+    position: sticky; top: 0; background: var(--bg);
+  }
+  td { padding: 7px 4px; border-bottom: 1px solid var(--bg2); vertical-align: top; }
+  .ellipsis { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-completed { color: #30d158; }
+  .s-failed { color: #ff453a; }
+  .s-processing { color: #ffd60a; }
+  .s-pending { color: var(--hint); }
+  .load-more {
+    width: 100%; margin-top: 12px; padding: 10px; border-radius: 10px;
+    border: none; background: var(--bg2); color: var(--text);
+    cursor: pointer; font-size: 14px;
+  }
+  .load-more:disabled { color: var(--hint); cursor: default; }
+  .reset-btn {
+    padding: 4px 8px; border-radius: 6px; border: none;
+    background: var(--btn); color: var(--btn-text);
+    cursor: pointer; font-size: 11px; white-space: nowrap;
+  }
+  .reset-btn:disabled { opacity: 0.5; cursor: default; }
+  .admin-form {
+    background: var(--bg2);
+    border-radius: 12px;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+  }
+  .admin-form label {
+    display: grid;
+    gap: 5px;
+    color: var(--hint);
+    font-size: 12px;
+  }
+  .admin-form input {
+    width: 100%;
+    border: 1px solid var(--hint);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+  }
+  .admin-form button {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: none;
+    background: var(--btn);
+    color: var(--btn-text);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .admin-form button:disabled { opacity: 0.5; cursor: default; }
+  .msg { padding: 16px; text-align: center; color: var(--hint); }
+  .err { color: #ff453a; }
+  .ok { color: #30d158; }
+</style>
+</head>
+<body>
+<h1>Панель администратора</h1>
+
+<div id="stats" class="msg">Загрузка...</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('generations')">Генерации</button>
+  <button class="tab-btn" onclick="switchTab('payments')">Платежи</button>
+  <button class="tab-btn" onclick="switchTab('users')">Пользователи</button>
+  <button class="tab-btn" onclick="switchTab('balance')">Баланс</button>
+</div>
+
+<div id="tab-generations" class="tab-content active">
+  <table>
+    <thead><tr><th>#</th><th>Пользователь</th><th>Промпт</th><th>Статус</th><th>₽</th><th>Дата</th></tr></thead>
+    <tbody id="gen-body"></tbody>
+  </table>
+  <button class="load-more" id="gen-more" onclick="loadGen()">Загрузить ещё</button>
+</div>
+
+<div id="tab-payments" class="tab-content">
+  <table>
+    <thead><tr><th>#</th><th>Пользователь</th><th>Сумма</th><th>Дата</th></tr></thead>
+    <tbody id="pay-body"></tbody>
+  </table>
+  <button class="load-more" id="pay-more" onclick="loadPay()">Загрузить ещё</button>
+</div>
+
+<div id="tab-users" class="tab-content">
+  <table>
+    <thead><tr><th>Пользователь</th><th>Баланс</th><th>Бесплатных</th><th>Генераций</th><th></th></tr></thead>
+    <tbody id="usr-body"></tbody>
+  </table>
+  <button class="load-more" id="usr-more" onclick="loadUsers()">Загрузить ещё</button>
+</div>
+
+<div id="tab-balance" class="tab-content">
+  <form class="admin-form" id="credit-form">
+    <label>
+      User ID
+      <input id="credit-user-id" inputmode="numeric" autocomplete="off" required>
+    </label>
+    <label>
+      Сумма, ₽
+      <input id="credit-amount" inputmode="decimal" autocomplete="off" required>
+    </label>
+    <label>
+      Комментарий
+      <input id="credit-note" maxlength="200" autocomplete="off" placeholder="Например: ручное доначисление оплаты">
+    </label>
+    <button id="credit-submit" type="submit">Доначислить</button>
+    <div id="credit-msg" class="msg"></div>
+  </form>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+const initData = tg.initData;
+
+let genPage = 0, payPage = 0, usrPage = 0;
+let genDone = false, payDone = false, usrDone = false;
+let usrLoaded = false;
+
+async function api(path) {
+  const r = await fetch(path, { headers: { 'Authorization': 'tma ' + initData } });
+  if (r.status === 403) throw new Error('Нет доступа (403)');
+  if (!r.ok) throw new Error('Ошибка сервера ' + r.status);
+  return r.json();
+}
+
+async function apiPost(path, body) {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'tma ' + initData,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 403) throw new Error('Нет доступа (403)');
+  if (!r.ok) throw new Error(data.error || 'Ошибка сервера ' + r.status);
+  return data;
+}
+
+function dt(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit',year:'2-digit'})
+       + '\n' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+}
+
+function userName(r) {
+  return r.username ? '@' + r.username : (r.first_name || String(r.user_id));
+}
+
+function esc(s) {
+  if (s === undefined || s === null || s === '') return '—';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/api/admin/stats');
+    document.getElementById('stats').innerHTML = `
+      <div class="stats">
+        <div class="stat-card"><div class="label">Пользователей</div><div class="value">${s.total_users}</div></div>
+        <div class="stat-card"><div class="label">Генераций</div><div class="value">${s.total_generations}</div></div>
+        <div class="stat-card"><div class="label">Успешных</div><div class="value">${s.completed_generations}</div></div>
+        <div class="stat-card"><div class="label">Выручка</div><div class="value">${Number(s.total_revenue).toFixed(0)}₽</div></div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('stats').innerHTML = `<div class="msg err">${e.message}</div>`;
+  }
+}
+
+async function loadGen() {
+  if (genDone) return;
+  const btn = document.getElementById('gen-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const rows = await api('/api/admin/generations?page=' + genPage);
+    const tbody = document.getElementById('gen-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.id}</td>
+        <td style="white-space:nowrap">${esc(userName(r))}</td>
+        <td class="ellipsis" title="${esc(r.prompt)}">${esc(r.prompt)}</td>
+        <td class="s-${r.status}">${r.status}</td>
+        <td>${r.is_free ? 'free' : Number(r.cost).toFixed(0)}</td>
+        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
+      tbody.appendChild(tr);
+    });
+    if (rows.length < 50) { genDone = true; btn.textContent = 'Всё загружено'; }
+    else { genPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('gen-body').innerHTML = `<tr><td colspan="6" class="msg err">${e.message}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
+}
+
+async function loadPay() {
+  if (payDone) return;
+  const btn = document.getElementById('pay-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const rows = await api('/api/admin/payments?page=' + payPage);
+    const tbody = document.getElementById('pay-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.id}</td>
+        <td style="white-space:nowrap">${esc(userName(r))}</td>
+        <td><b>${Number(r.amount).toFixed(0)}₽</b></td>
+        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
+      tbody.appendChild(tr);
+    });
+    if (rows.length < 50) { payDone = true; btn.textContent = 'Всё загружено'; }
+    else { payPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('pay-body').innerHTML = `<tr><td colspan="4" class="msg err">${e.message}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
+}
+
+async function loadUsers() {
+  if (usrDone) return;
+  const btn = document.getElementById('usr-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const rows = await api('/api/admin/users?page=' + usrPage);
+    const tbody = document.getElementById('usr-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.dataset.userId = r.user_id;
+      tr.innerHTML = `
+        <td style="white-space:nowrap">${esc(userName(r))}<br><span style="color:var(--hint);font-size:10px">${r.user_id}</span></td>
+        <td><span class="user-balance">${Number(r.balance).toFixed(0)}</span>₽</td>
+        <td class="free-gen-cell"><span class="free-gen">${r.free_generations}</span></td>
+        <td>${r.total_generations}</td>
+        <td>
+          <button class="reset-btn" onclick="prefillCredit(${r.user_id})">+₽</button>
+          <button class="reset-btn" onclick="resetFree(${r.user_id}, this)">↺ до 3</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    if (rows.length < 200) { usrDone = true; btn.textContent = 'Всё загружено'; }
+    else { usrPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('usr-body').innerHTML = `<tr><td colspan="5" class="msg err">${e.message}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
+}
+
+async function resetFree(userId, btn) {
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/admin/set-free', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'tma ' + initData,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_id: userId, count: 3 }),
+    });
+    if (r.ok) {
+      btn.closest('tr').querySelector('.free-gen').textContent = '3';
+      btn.textContent = '✓';
+      setTimeout(() => { btn.textContent = '↺ до 3'; btn.disabled = false; }, 1500);
+      return;
+    }
+  } catch(e) {}
+  btn.textContent = '✗';
+  setTimeout(() => { btn.textContent = '↺ до 3'; btn.disabled = false; }, 1500);
+}
+
+function prefillCredit(userId) {
+  switchTab('balance');
+  document.getElementById('credit-user-id').value = String(userId);
+  document.getElementById('credit-amount').focus();
+}
+
+async function creditBalance(e) {
+  e.preventDefault();
+  const btn = document.getElementById('credit-submit');
+  const msg = document.getElementById('credit-msg');
+  const userId = Number(document.getElementById('credit-user-id').value.trim());
+  const amount = Number(document.getElementById('credit-amount').value.trim().replace(',', '.'));
+  const note = document.getElementById('credit-note').value.trim();
+
+  msg.className = 'msg';
+  msg.textContent = '';
+  if (!userId || !amount || amount <= 0) {
+    msg.className = 'msg err';
+    msg.textContent = 'Укажите user_id и сумму больше 0.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Доначисляем...';
+  try {
+    const r = await apiPost('/api/admin/credit-balance', { user_id: userId, amount, note });
+    msg.className = 'msg ok';
+    msg.textContent = `Готово. Новый баланс: ${Number(r.balance).toFixed(0)}₽`;
+
+    const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+    const balanceEl = row && row.querySelector('.user-balance');
+    if (balanceEl) balanceEl.textContent = Number(r.balance).toFixed(0);
+
+    payPage = 0; payDone = false;
+    document.getElementById('pay-body').innerHTML = '';
+    loadPay();
+    loadStats();
+  } catch(err) {
+    msg.className = 'msg err';
+    msg.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Доначислить';
+  }
+}
+
+function switchTab(name) {
+  const names = ['generations', 'payments', 'users', 'balance'];
+  document.querySelectorAll('.tab-content').forEach(el =>
+    el.classList.toggle('active', el.id === 'tab-' + name));
+  document.querySelectorAll('.tab-btn').forEach((b, i) =>
+    b.classList.toggle('active', names[i] === name));
+  if (name === 'users' && !usrLoaded) { usrLoaded = true; loadUsers(); }
+}
+
+loadStats();
+loadGen();
+loadPay();
+document.getElementById('credit-form').addEventListener('submit', creditBalance);
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+import { KIE_API_KEY } from "../config.js";
+
+const API_URL = "https://api.kie.ai/api/v1/jobs/createTask";
+const TASK_STATUS_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
+
+const POLL_INTERVAL_MS = 4000;
+const POLL_MAX_ATTEMPTS = 45;
+
+export class KieError extends Error {}
+
+interface KieCreateResponse {
+  code: number;
+  msg?: string;
+  message?: string;
+  data?: { taskId: string };
+}
+
+interface KieStatusResponse {
+  data?: {
+    state?: string;
+    resultJson?: string;
+    failMsg?: string;
+  };
+}
+
+export async function generateImage(imageUrl: string, prompt: string): Promise<Buffer> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${KIE_API_KEY.trim()}`,
+    "Content-Type": "application/json",
+  };
+  const payload = {
+    model: "google/nano-banana",
+    input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
+  };
+
+  const createResp = await fetch(API_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const data = (await createResp.json()) as KieCreateResponse;
+
+  if (data.code !== 200) {
+    const msg = data.msg ?? data.message ?? JSON.stringify(data);
+    throw new KieError(`KIE.ai вернул ошибку ${data.code}: ${msg}`);
+  }
+
+  const taskId = data.data?.taskId;
+  if (!taskId) throw new KieError("KIE.ai не вернул taskId");
+
+  let resultUrl: string | undefined;
+
+  for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+
+    let statusData: KieStatusResponse;
+    try {
+      const statusResp = await fetch(`${TASK_STATUS_URL}?taskId=${taskId}`, {
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!statusResp.ok) continue;
+      statusData = (await statusResp.json()) as KieStatusResponse;
+    } catch {
+      continue;
+    }
+
+    const taskData = statusData.data ?? {};
+    const state = taskData.state ?? "";
+
+    if (state === "success") {
+      const resultJsonStr = taskData.resultJson ?? "{}";
+      const resultJson = JSON.parse(resultJsonStr) as { resultUrls?: string[] };
+      resultUrl = resultJson.resultUrls?.[0];
+      if (!resultUrl) throw new KieError("Задача завершена, но resultUrls отсутствует");
+      break;
+    }
+
+    if (state === "fail") {
+      const errMsg = taskData.failMsg ?? "неизвестная ошибка генерации";
+      throw new KieError(`Генерация не удалась: ${errMsg}`);
+    }
+  }
+
+  if (!resultUrl) throw new KieError("Превышено время ожидания генерации (3 минуты)");
+
+  const imgResp = await fetch(resultUrl, { signal: AbortSignal.timeout(60_000) });
+  if (!imgResp.ok) throw new KieError(`Не удалось скачать результат: HTTP ${imgResp.status}`);
+
+  const resultBytes = Buffer.from(await imgResp.arrayBuffer());
+  if (resultBytes.length === 0) throw new KieError("Получен пустой файл изображения");
+
+  return resultBytes;
+}

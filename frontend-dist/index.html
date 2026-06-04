@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Профессиональная ретушь и восстановление мемориальных фотографий. Подготовка портретов для гравировки, фотокерамики и памятников. Бережно, без искажения черт лица.">
+    <meta name="keywords" content="ретушь фото памятник, восстановление фотографий, фото для гравировки, фотокерамика, мемориальный портрет, photo restoration memorial, engraving portrait preparation">
+    <meta property="og:title" content="Ретушь фотографий для памятников и гравировки | Memorial Retouch AI">
+    <meta property="og:description" content="Профессиональная ретушь мемориальных фотографий. Подготовка под гравировку, фотокерамику и памятники. Результат за несколько минут.">
+    <link rel="icon" href="/favicon.ico" sizes="64x64">
+    <title>Ретушь фотографий для памятников и гравировки | Memorial Retouch AI</title>
+    
+    <!-- CSS -->
+  <script type="module" crossorigin src="/assets/index-DDosOUSC.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CfC-AHkg.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div id="app" class="app-container" style="display:none">
+        
+        <!-- Header -->
+        <header class="header" id="header" style="display:none">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="#" class="logo-link">
+                        <img class="logo-image logo-dark" src="/images/logo_dark_theme.png" alt="Memorial Retouch AI">
+                        <img class="logo-image logo-light-mobile" src="/images/logo_light_theme.png" alt="Memorial Retouch AI">
+                    </a>
+                </div>
+                
+                <nav class="nav-menu" id="nav-menu">
+                    <button class="nav-item" data-page="dashboard">
+                        <span>🏛 Главная</span>
+                    </button>
+                    <button class="nav-item" data-page="generate">
+                        <span>📷 Обработать фото</span>
+                    </button>
+                    <button class="nav-item" data-page="gallery">
+                        <span>📂 Примеры работ</span>
+                    </button>
+                    <button class="nav-item" data-page="wallet">
+                        <span>💳 Тарифы</span>
+                    </button>
+                </nav>
+
+                <div class="header-actions">
+                    <button class="btn-icon" id="theme-toggle" title="Переключить тему">
+                      <!--  🌙-->
+                    </button>
+                    <button class="btn-icon" id="profile-menu" title="Профиль">
+                        👤
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mobile Top Nav -->
+        <nav class="mobile-top-nav" id="mobile-top-nav">
+            <button class="mobile-nav-item" data-page="dashboard">
+                <span class="mobile-nav-icon">🏛</span>
+                <span class="mobile-nav-label">Главная</span>
+            </button>
+            <button class="mobile-nav-item" data-page="generate">
+                <span class="mobile-nav-icon">📷</span>
+                <span class="mobile-nav-label">Обработать</span>
+            </button>
+            <button class="mobile-nav-item" data-page="wallet">
+                <span class="mobile-nav-icon">💳</span>
+                <span class="mobile-nav-label">Тарифы</span>
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            
+            <!-- Dashboard Page -->
+            <section class="page" id="page-dashboard" data-page="dashboard">
+                <div class="container">
+                    <!-- User Info Card -->
+                    <div class="info-panel">
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <div class="info-label">Баланс</div>
+                                <div class="info-value balance" id="balance">0₽</div>
+                                <button class="btn btn-primary btn-sm" data-page="wallet">
+                                    Пополнить
+                                </button>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Свободных обработок</div>
+                                <div class="info-value free-gens" id="free-generations">3</div>
+                                <div class="info-hint">осталось</div>
+                            </div>
+                            <div class="info-card">
+                                <div class="info-label">Всего использовано</div>
+                                <div class="info-value total-used" id="total-generations">0</div>
+                                <div class="info-hint">обработок</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trust Bar -->
+                    <div class="trust-bar">
+                        <div class="trust-badge">🎯 Без изменения черт лица</div>
+                        <div class="trust-badge">🕊 Бережная реставрация</div>
+                        <div class="trust-badge">🏛 Подходит для памятников и фотокерамики</div>
+                        <div class="trust-badge">⏱ Результат за несколько минут</div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-section">
+                        <button class="btn btn-large btn-primary" data-page="generate">
+                            <span class="btn-icon-large">📤</span>
+                            <span class="btn-text">Загрузить фотографию</span>
+                        </button>
+                        <button class="btn btn-large btn-secondary" id="how-to-btn">
+                            <span class="btn-icon-large">❓</span>
+                            <span class="btn-text">Как это работает</span>
+                        </button>
+                    </div>
+
+                    <!-- How To Section (Hidden by default) -->
+                    <div class="how-to-section" id="how-to-section" style="display: none;">
+                        <div class="how-to-card">
+                            <h3>📷 Как подготовить фотографию</h3>
+                            <p>Сервис принимает старые, выцветшие и повреждённые фотопортреты любого качества.</p>
+
+                            <h4>Что сервис делает:</h4>
+                            <ul>
+                                <li>Восстанавливает чёткость и детали мемориального портрета</li>
+                                <li>Удаляет царапины, пятна, шум и дефекты</li>
+                                <li>Готовит фото для гравировки или фотокерамики</li>
+                                <li>Не изменяет черты лица — полностью сохраняет сходство</li>
+                            </ul>
+
+                            <h4>✅ Примеры задач:</h4>
+                            <ul class="good-examples">
+                                <li>«Восстановить старое фото, убрать царапины»</li>
+                                <li>«Подготовить под лазерную гравировку, черно-белый»</li>
+                                <li>«Улучшить качество, деловой портрет, серый фон»</li>
+                                <li>«Очистить фон, подготовить для фотокерамики»</li>
+                            </ul>
+
+                            <h4>Поддерживаемые форматы:</h4>
+                            <ul>
+                                <li>Старые бумажные фотографии (сканы)</li>
+                                <li>Выцветшие и повреждённые снимки</li>
+                                <li>Фото низкого разрешения и качества</li>
+                            </ul>
+
+                            <p><em>💡 Для сложных задач используйте переключатель режимов на странице обработки.</em></p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Results -->
+                    <div class="recent-results">
+                        <h3>Недавние результаты</h3>
+                        <div class="gallery-grid" id="recent-gallery">
+                            <!-- Generated dynamically -->
+                            <div class="gallery-empty">
+                                <p>📷 У вас ещё нет обработанных фотографий</p>
+                                <p>Начните с загрузки фото</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Generate Page -->
+            <section class="page" id="page-generate" data-page="generate">
+                <div class="container">
+                    <div class="generate-wrapper">
+                        <!-- Photo Upload Section -->
+                        <div class="upload-section">
+                            <h2>📸 Загрузите фото</h2>
+                            <p class="section-hint">Загрузите фото с четким изображением вашего лица</p>
+
+                            <div class="upload-zone" id="upload-zone">
+                                <input type="file" id="photo-input" accept="image/*" hidden>
+                                <div class="upload-placeholder" id="upload-placeholder">
+                                    <div class="upload-icon">📤</div>
+                                    <p class="upload-title">Перетащите фото сюда</p>
+                                    <p class="upload-hint">или</p>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="upload-btn">
+                                        Выберите файл
+                                    </button>
+                                    <p class="upload-format">JPG, PNG до 10MB</p>
+                                </div>
+
+                                <div class="upload-preview" id="upload-preview" style="display: none;">
+                                    <img id="preview-image" src="" alt="Preview">
+                                    <button type="button" class="btn-icon btn-close-preview" id="clear-photo">
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profile Mode Section -->
+                        <div class="profile-mode-section">
+                            <h2>⚙️ Параметры обработки</h2>
+
+                            <!-- Role switcher -->
+                            <div class="segmented-control" id="role-switcher">
+                                <button type="button" class="segment-btn active" data-role="designer">Для дизайнера</button>
+                                <button type="button" class="segment-btn" data-role="manager">Для менеджера салона</button>
+                                <button type="button" class="segment-btn" data-role="engraver">Для гравировщика</button>
+                            </div>
+
+                            <!-- Sticky preset: always visible -->
+                            <div class="preset-sticky-bar">
+                                <button type="button" class="preset-btn sticky active" data-preset="face_quality" data-field="additional">
+                                    ✦ Улучшить качество лица
+                                </button>
+                            </div>
+
+                            <!-- Designer presets -->
+                            <div class="preset-group" id="presets-designer">
+                                <button type="button" class="preset-btn" data-preset="detail" data-field="additional">Повысить детализацию</button>
+                                <button type="button" class="preset-btn" data-preset="denoise" data-field="additional">Удалить шум</button>
+                                <button type="button" class="preset-btn" data-preset="ceramic" data-field="additional">Под фотокерамику</button>
+                                <button type="button" class="preset-btn" data-preset="bw" data-field="additional">Черно-белый портрет</button>
+                                <button type="button" class="preset-btn" data-preset="clean_bg" data-field="additional">Очистить фон</button>
+                                <button type="button" class="preset-btn" data-preset="contrast" data-field="additional">Усилить контраст</button>
+                            </div>
+
+                            <!-- Manager presets -->
+                            <div class="preset-group" id="presets-manager" style="display:none">
+                                <button type="button" class="preset-btn" data-preset="business" data-field="clothing">Деловой портрет</button>
+                                <button type="button" class="preset-btn" data-preset="fullbody" data-field="pose" data-autofill="в полный рост, одна рука в кармане">В полный рост</button>
+                                <button type="button" class="preset-btn" data-preset="light_bg" data-field="background">На светлом фоне</button>
+                                <button type="button" class="preset-btn" data-preset="bw_photo" data-field="additional">Черно-белое фото</button>
+                                <button type="button" class="preset-btn" data-preset="monument" data-field="additional">Для памятника</button>
+                                <button type="button" class="preset-btn" data-preset="ceramic_mgr" data-field="additional">Для фотокерамики</button>
+                            </div>
+
+                            <!-- Engraver presets -->
+                            <div class="preset-group" id="presets-engraver" style="display:none">
+                                <button type="button" class="preset-btn" data-preset="engrave" data-field="additional">Под гравировку</button>
+                                <button type="button" class="preset-btn" data-preset="contrast_eng" data-field="additional">Усилить контраст</button>
+                                <button type="button" class="preset-btn" data-preset="bw_eng" data-field="additional">Черно-белый режим</button>
+                                <button type="button" class="preset-btn" data-preset="clean_bg_eng" data-field="additional">Очистить фон</button>
+                                <button type="button" class="preset-btn" data-preset="cnc" data-field="additional">Для ЧПУ</button>
+                                <button type="button" class="preset-btn" data-preset="stone_invert" data-field="additional" data-invert-preview="true">Белый рисунок на чёрном камне</button>
+                            </div>
+
+                            <!-- 4 fields -->
+                            <div class="multi-field-form">
+                                <div class="form-group">
+                                    <label for="field-clothing">Одежда</label>
+                                    <input type="text" id="field-clothing" class="form-control" placeholder="Например: деловой костюм" maxlength="200">
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-pose">Поза</label>
+                                    <input type="text" id="field-pose" class="form-control" placeholder="Например: строгая прямая поза" maxlength="200">
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-background">Фон</label>
+                                    <input type="text" id="field-background" class="form-control" placeholder="Например: нейтральный светло-серый" maxlength="200">
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-additional">Дополнительно</label>
+                                    <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="500"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generate Button -->
+                        <div class="generate-action">
+                            <button id="generate-btn" class="btn btn-large btn-primary" disabled>
+                                <span class="btn-spinner" id="btn-spinner" style="display: none;">⏳</span>
+                                <span class="btn-label" id="btn-label">Обработать фото</span>
+                            </button>
+                            <p class="action-hint generation-hint-text" id="generation-hint">
+                                Списание: 1 генерация из пакета. Скачивание финального High-Res файла бесплатно.
+                            </p>
+                        </div>
+
+                        <!-- Status Messages -->
+                        <div id="status-message" class="status-message" style="display: none;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Page -->
+            <section class="page" id="page-results" data-page="results">
+                <div class="container">
+                    <div class="results-wrapper">
+                        <h2>✅ Фото обработано!</h2>
+
+                        <!-- Generation Info -->
+                        <div class="generation-info" id="generation-info" style="display:none;">
+                            <div class="info-item">
+                                <span class="info-label">Запрос:</span>
+                                <span class="info-value" id="result-prompt"></span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Время генерации:</span>
+                                <span class="info-value" id="result-time"></span>
+                            </div>
+                        </div>
+
+                        <div class="results-grid">
+                            <!-- Original Photo -->
+                            <div class="result-item">
+                                <div class="result-title">Исходное фото</div>
+                                <img id="result-original" src="" alt="Original" class="result-image">
+                            </div>
+
+                            <!-- Generated Photo -->
+                            <div class="result-item">
+                                <div class="result-title">Результат обработки</div>
+                                <div class="result-image-wrapper">
+                                    <img id="result-generated" src="" alt="Generated" class="result-image">
+                                    <button class="btn btn-sm btn-icon" id="download-btn" title="Скачать">
+                                        ⬇️
+                                    </button>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" id="grayscale-toggle" style="margin-top: var(--space-sm);">
+                                    Ч/Б предпросмотр
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="results-actions">
+                            <button class="btn btn-primary" id="generate-another-btn" data-page="generate">
+                                📤 Обработать ещё одно фото
+                            </button>
+                            <button class="btn btn-secondary" id="download-result-btn">
+                                ⬇️ Скачать
+                            </button>
+                            <button class="btn btn-secondary" id="back-dashboard-btn" data-page="dashboard">
+                                ← На главную
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gallery Page -->
+            <section class="page" id="page-gallery" data-page="gallery">
+                <div class="container">
+                    <h2>📂 Примеры работ</h2>
+
+                    <!-- Static before/after cases -->
+                    <div class="gallery-cases">
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case1-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case1-after.jpg" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Колоризация чёрно-белого фото</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case2-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case2-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка под лазерную гравировку</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case3-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case3-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Удаление повреждений и шума</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case4-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case4-after.jpeg" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка фото для фотокерамики</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case6-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case6-after.jpg" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Реставрация портрета</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case7-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case7-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка к гравировке</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case8-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case8-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Восстановление деталей</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case9-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case9-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Повышение чёткости и качества</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case10-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case10-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Реставрация архивного фото</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case11-befor.png" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case11-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка бытового фото для памятника</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case12-befor.jpg" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case12-after.jpg" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка к фотокерамике</div>
+                        </div>
+                        <div class="before-after-card">
+                            <div class="gallery-case-pair">
+                                <div class="case-image-wrap">
+                                    <div class="case-label">До</div>
+                                    <img class="case-img" src="/images/cases/case13-befor.png" alt="До">
+                                </div>
+                                <div class="case-image-wrap">
+                                    <div class="case-label">После</div>
+                                    <img class="case-img" src="/images/cases/case13-after.png" alt="После">
+                                </div>
+                            </div>
+                            <div class="case-caption">Подготовка под гравировку</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Section -->
+                    <div class="gallery-filters">
+                        <input type="text" id="gallery-search" class="form-control" placeholder="Поиск...">
+                        <select id="gallery-filter" class="form-control">
+                            <option value="">Все результаты</option>
+                            <option value="today">Сегодня</option>
+                            <option value="week">На этой неделе</option>
+                            <option value="month">В этом месяце</option>
+                        </select>
+                    </div>
+
+                    <!-- Gallery Grid -->
+                    <div class="gallery-grid" id="gallery-grid">
+                        <!-- Generated dynamically -->
+                        <div class="gallery-empty">
+                            <p>📸 Ваши обработанные фотографии появятся здесь</p>
+                            <button class="btn btn-primary" data-page="generate">
+                                Загрузить фотографию
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Wallet/Payment Modal -->
+            <div id="wallet-modal-backdrop" class="modal-backdrop"></div>
+            <div class="modal" id="wallet-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">💳 Выберите тариф</h2>
+                    <button class="modal-close" id="wallet-modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Current Balance -->
+                    <div class="wallet-info">
+                        <div class="balance-card">
+                            <div class="balance-label">Текущий баланс</div>
+                            <div class="balance-amount" id="wallet-balance">0₽</div>
+                        </div>
+                    </div>
+
+                    <!-- Topup Packages -->
+                    <div class="topup-section">
+                        <h3>Выберите пакет обработок</h3>
+                        <div class="topup-options" id="topup-options">
+                            <button class="topup-card" data-amount="500">
+                                <div class="topup-card-title">На пробу</div>
+                                <div class="topup-card-desc">10 премиум-обработок высокого разрешения</div>
+                                <div class="topup-card-price">500 ₽</div>
+                                <div class="topup-card-per">50 руб. / обработка</div>
+                            </button>
+                            <button class="topup-card" data-amount="1500">
+                                <div class="topup-card-title">Профессиональный</div>
+                                <div class="topup-card-desc">40 обработок + приоритетная очередь</div>
+                                <div class="topup-card-price">1 500 ₽</div>
+                                <div class="topup-card-per">37 руб. / обработка</div>
+                            </button>
+                            <button class="topup-card popular" data-amount="3000">
+                                <div class="topup-badge-label">Популярно</div>
+                                <div class="topup-card-title">Мастерская (Сезонный)</div>
+                                <div class="topup-card-desc">100 обработок + VIP поддержка</div>
+                                <div class="topup-card-price">3 000 ₽</div>
+                                <div class="topup-card-per">30 руб. / обработка</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pay Button -->
+                    <button class="btn btn-large btn-primary" id="pay-btn">
+                        Оплатить
+                    </button>
+
+                    <!-- Payment History -->
+                    <div class="payment-history">
+                        <h3>История платежей</h3>
+                        <div class="history-list" id="payment-history">
+                            <div class="history-empty">
+                                <p>Пока нет платежей</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Mobile Bottom Nav -->
+        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+            <button class="mobile-nav-item" data-page="dashboard">
+                <span class="mobile-nav-icon">🏛</span>
+                <span class="mobile-nav-label">Главная</span>
+            </button>
+            <button class="mobile-nav-item" data-page="generate">
+                <span class="mobile-nav-icon">📷</span>
+                <span class="mobile-nav-label">Обработать</span>
+            </button>
+            <button class="mobile-nav-item" data-page="wallet">
+                <span class="mobile-nav-icon">💳</span>
+                <span class="mobile-nav-label">Тарифы</span>
+            </button>
+        </nav>
+
+        <!-- Legal Footer -->
+        <footer class="footer" id="footer-legal">
+            <div class="footer-inner">
+                <div class="footer-contacts">
+                    <a href="mailto:hello@ritual-retouch.ru">hello@ritual-retouch.ru</a>
+                    &nbsp;·&nbsp;
+                    <a href="https://t.me/AlexAIBotMaster" target="_blank">@AlexAIBotMaster</a>
+                </div>
+                <div class="footer-requisites">
+                    Самозанятый Конищев Александр Иванович · ИНН&nbsp;301610174061
+                </div>
+                <div class="footer-links">
+                    <a href="/oferta" target="_blank">Оферта</a>
+                    <a href="/oferta#vozvrat" target="_blank">Возврат</a>
+                    <a href="/privacy" target="_blank">Политика ПД</a>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Modal Dialogs -->
+        <div id="modals"></div>
+
+    </div>
+
+    <!-- Auth page (hidden by default, shown when not logged in) -->
+    <div id="auth-overlay" class="auth-overlay" style="display:none;">
+        <div class="auth-card">
+            <h2 class="auth-title">Memorial Retouch AI</h2>
+            <p class="auth-subtitle">Профессиональная ретушь мемориальных фотографий</p>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login">Войти</button>
+                <button class="auth-tab" id="tab-register">Регистрация</button>
+            </div>
+
+            <form id="auth-form">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="auth-email" class="form-control" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" id="auth-password" class="form-control" placeholder="Минимум 6 символов" required>
+                </div>
+                <div id="auth-error" class="alert alert-error" style="display:none;"></div>
+                <div id="auth-info" class="alert alert-info" style="display:none;"></div>
+                <button type="submit" class="btn btn-primary btn-large" id="auth-submit">Войти</button>
+                <button type="button" class="btn btn-secondary" id="auth-resend" style="display:none;margin-top:8px;width:100%">Отправить письмо повторно</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Before/After Compare Overlay -->
+    <div id="compare-overlay" class="compare-overlay" aria-hidden="true">
+        <button class="compare-close-btn" id="compare-close-btn" aria-label="Закрыть">✕</button>
+        <div class="compare-container" id="compare-container">
+            <img class="compare-img-before" id="compare-img-before" alt="До">
+            <img class="compare-img-after" id="compare-img-after" alt="После">
+            <div class="compare-divider" id="compare-divider">
+                <div class="compare-handle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6" transform="translate(-3,0)"/>
+                        <polyline points="9 18 15 12 9 6" transform="translate(3,0)"/>
+                    </svg>
+                </div>
+            </div>
+            <span class="compare-badge compare-badge-before">До</span>
+            <span class="compare-badge compare-badge-after">После</span>
+        </div>
+    </div>
+
+    <!-- YooKassa widget script (loaded on demand) -->
+    <script id="yookassa-widget-script"></script>
+
+    <!-- TypeScript entry point (Vite) -->
+</body>
+</html>

@@ -1,0 +1,545 @@
+/* ============================================
+   Theme Styles
+   ============================================ */
+
+/* Dark Theme (Default — professional dark UI) */
+:root,
+[data-theme="dark"] {
+    --bg-primary: #12161C;
+    --bg-secondary: #1C2330;
+    --bg-tertiary: #232D3E;
+    --text-primary: #E8EDF2;
+    --text-secondary: #8FA3BA;
+    --text-tertiary: #5A6E82;
+    --border-color: #2F3E52;
+}
+
+/* Light Theme */
+[data-theme="light"] {
+    --bg-primary: #F0F3F7;
+    --bg-secondary: #E4EAF1;
+    --bg-tertiary: #D6DFE8;
+    --text-primary: #1A2535;
+    --text-secondary: #4A5E70;
+    --text-tertiary: #7A90A4;
+    --border-color: #BBC8D4;
+}
+
+/* Color Palette Classes */
+.text-primary {
+    color: var(--primary);
+}
+
+.text-secondary {
+    color: var(--secondary);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-error {
+    color: var(--error);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-info {
+    color: var(--info);
+}
+
+.text-muted {
+    color: var(--medium-gray);
+}
+
+.bg-primary {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.bg-secondary {
+    background-color: var(--secondary);
+    color: var(--white);
+}
+
+.bg-success {
+    background-color: var(--success);
+    color: var(--white);
+}
+
+.bg-error {
+    background-color: var(--error);
+    color: var(--white);
+}
+
+.bg-warning {
+    background-color: var(--warning);
+    color: var(--white);
+}
+
+.bg-info {
+    background-color: var(--info);
+    color: var(--white);
+}
+
+.bg-light {
+    background-color: var(--light-gray);
+}
+
+.bg-lighter {
+    background-color: var(--lighter-gray);
+}
+
+/* Border Colors */
+.border-primary {
+    border-color: var(--primary);
+}
+
+.border-secondary {
+    border-color: var(--secondary);
+}
+
+.border-success {
+    border-color: var(--success);
+}
+
+.border-error {
+    border-color: var(--error);
+}
+
+.border-warning {
+    border-color: var(--warning);
+}
+
+.border-info {
+    border-color: var(--info);
+}
+
+.border-light {
+    border-color: var(--border-gray);
+}
+
+/* Status States */
+.status-pending {
+    color: var(--warning);
+}
+
+.status-success {
+    color: var(--success);
+}
+
+.status-error {
+    color: var(--error);
+}
+
+.status-info {
+    color: var(--info);
+}
+
+/* Link Styles */
+.link {
+    color: var(--primary);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color var(--transition-base);
+}
+
+.link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.link:active {
+    color: var(--primary-dark);
+}
+
+.link-success {
+    color: var(--success);
+}
+
+.link-success:hover {
+    color: #059669;
+}
+
+.link-error {
+    color: var(--error);
+}
+
+.link-error:hover {
+    color: #DC2626;
+}
+
+.link-warning {
+    color: var(--warning);
+}
+
+.link-warning:hover {
+    color: #D97706;
+}
+
+/* Section Backgrounds */
+.section-light {
+    background-color: var(--lighter-gray);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.section-gradient {
+    background: var(--gradient-primary);
+    color: var(--white);
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.section-gradient a {
+    color: var(--white);
+    text-decoration: underline;
+}
+
+.section-gradient a:hover {
+    opacity: 0.8;
+}
+
+/* Dividers */
+.divider {
+    height: 1px;
+    background-color: var(--border-gray);
+    margin: var(--space-xl) 0;
+}
+
+.divider-light {
+    background-color: rgba(229, 231, 235, 0.5);
+}
+
+.divider-dark {
+    background-color: var(--dark-gray);
+}
+
+.divider-primary {
+    background-color: var(--primary);
+    height: 2px;
+}
+
+/* Surface Colors */
+.surface-primary {
+    background-color: #E3F2FD;
+}
+
+.surface-secondary {
+    background-color: #F3E5F5;
+}
+
+.surface-success {
+    background-color: #ECFDF5;
+}
+
+.surface-error {
+    background-color: #FEF2F2;
+}
+
+.surface-warning {
+    background-color: #FFFBEB;
+}
+
+.surface-info {
+    background-color: #EFF6FF;
+}
+
+/* Overlay Styles */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: var(--z-fixed);
+    border-radius: inherit;
+}
+
+.overlay-light {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.overlay-gradient {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.7) 100%
+    );
+}
+
+/* Emphasis Styles */
+.emphasis {
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+}
+
+.emphasis-secondary {
+    font-weight: var(--font-weight-bold);
+    color: var(--secondary);
+}
+
+.emphasis-success {
+    font-weight: var(--font-weight-bold);
+    color: var(--success);
+}
+
+.emphasis-error {
+    font-weight: var(--font-weight-bold);
+    color: var(--error);
+}
+
+.emphasis-warning {
+    font-weight: var(--font-weight-bold);
+    color: var(--warning);
+}
+
+/* Highlight Styles */
+.highlight {
+    background-color: #FBBF24;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.highlight-blue {
+    background-color: rgba(30, 136, 229, 0.2);
+    color: var(--primary);
+}
+
+.highlight-green {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.highlight-red {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: var(--error);
+}
+
+.highlight-yellow {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+/* Animation Variants */
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-bounce {
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.animate-ping {
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes ping {
+    75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn var(--transition-base);
+}
+
+.animate-fade-out {
+    animation: fadeOut var(--transition-base);
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.animate-slide-up {
+    animation: slideUp var(--transition-base);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-down {
+    animation: slideDown var(--transition-base);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-left {
+    animation: slideLeft var(--transition-base);
+}
+
+@keyframes slideLeft {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.animate-slide-right {
+    animation: slideRight var(--transition-base);
+}
+
+@keyframes slideRight {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Gradient Backgrounds */
+.gradient-to-right {
+    background: linear-gradient(to right, var(--primary), var(--secondary));
+}
+
+.gradient-to-bottom {
+    background: linear-gradient(to bottom, var(--primary), var(--secondary));
+}
+
+.gradient-to-tr {
+    background: linear-gradient(to top right, var(--primary), var(--secondary));
+}
+
+.gradient-to-br {
+    background: linear-gradient(to bottom right, var(--primary), var(--secondary));
+}
+
+/* Gradient Text */
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Filter Effects */
+.blur-sm {
+    backdrop-filter: blur(4px);
+}
+
+.blur-md {
+    backdrop-filter: blur(12px);
+}
+
+.blur-lg {
+    backdrop-filter: blur(20px);
+}
+
+/* Custom Scrollbar for specific elements */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background-color: var(--light-gray);
+    border-radius: var(--radius-full);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--border-gray);
+    border-radius: var(--radius-full);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--medium-gray);
+}
+
+/* Print Styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background-color: var(--white);
+        color: var(--dark-gray);
+    }
+
+    .btn,
+    .btn-icon,
+    .nav-menu {
+        display: none !important;
+    }
+
+    .page {
+        page-break-inside: avoid;
+    }
+
+    a {
+        text-decoration: underline;
+    }
+}
+
+/* ── Logo switching by theme ────────────────────────────────── */
+
+/* Dark theme (default): dark logo visible, light hidden */
+.logo-light-mobile { display: none; }
+
+/* Light theme: light logo visible, dark hidden */
+[data-theme="light"] .logo-dark { display: none; }
+[data-theme="light"] .logo-light-mobile { display: block; }
+
+/* ── Engraving preview mode ─────────────────────────────────── */
+.engraving-preview {
+    background: var(--engraving-bg) !important;
+    filter: invert(1) contrast(1.4);
+    border-radius: var(--radius-md);
+}

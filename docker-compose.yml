@@ -1,0 +1,35 @@
+services:
+  bot:
+    build: .
+    image: imagetransformationtgbot-ts
+    container_name: imagetransformationtgbot_ts
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Используем имя контейнера postgres из соседнего проекта
+      DATABASE_URL: postgresql://imagetransformer:${POSTGRES_PASSWORD}@postgre_imagetransformer/imagetransformer
+    expose:
+      - "8080"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - imagetransformer_net
+      - n8n_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=n8n_default"
+      - "traefik.http.routers.ritualretouch.rule=Host(`ritual-retouch.ru`)"
+      - "traefik.http.routers.ritualretouch.entrypoints=websecure"
+      - "traefik.http.routers.ritualretouch.tls=true"
+      - "traefik.http.routers.ritualretouch.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.ritualretouch.loadbalancer.server.port=8080"
+
+volumes:
+  uploads_data:
+
+networks:
+  imagetransformer_net:
+    external: true
+    name: imagetransformationtgbot-ts_imagetransformer_net
+  n8n_default:
+    external: true

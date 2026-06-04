@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пополнение через Robokassa</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999);
+            margin-bottom: 24px;
+        }
+
+        .amounts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 24px;
+        }
+
+        .amount-btn {
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px solid var(--tg-theme-hint-color, #ddd);
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #000);
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .amount-btn.selected {
+            border-color: var(--tg-theme-button-color, #0088cc);
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #fff);
+        }
+
+        .pay-btn {
+            width: 100%;
+            max-width: 320px;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .pay-btn:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .error {
+            color: #e53935;
+            font-size: 14px;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999);
+            text-align: center;
+            max-width: 320px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>💳 Пополнение через Robokassa</h1>
+    <p class="subtitle">Выберите сумму</p>
+
+    <div class="amounts" id="amounts"></div>
+
+    <button class="pay-btn" id="payBtn" disabled>Выберите сумму</button>
+    <p class="hint">После оплаты баланс пополнится автоматически</p>
+    <p class="error" id="errorMsg"></p>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const AMOUNTS = [100, 500, 1000, 2000];
+        let selectedAmount = null;
+
+        const amountsEl = document.getElementById("amounts");
+        const payBtn = document.getElementById("payBtn");
+        const errorMsg = document.getElementById("errorMsg");
+
+        AMOUNTS.forEach(amount => {
+            const btn = document.createElement("button");
+            btn.className = "amount-btn";
+            btn.textContent = amount + " ₽";
+            btn.dataset.amount = amount;
+            btn.addEventListener("click", () => selectAmount(amount));
+            amountsEl.appendChild(btn);
+        });
+
+        function selectAmount(amount) {
+            selectedAmount = amount;
+            document.querySelectorAll(".amount-btn").forEach(b => {
+                b.classList.toggle("selected", parseInt(b.dataset.amount) === amount);
+            });
+            payBtn.textContent = `Перейти к оплате ${amount} ₽`;
+            payBtn.disabled = false;
+        }
+
+        payBtn.addEventListener("click", async () => {
+            if (!selectedAmount) return;
+            payBtn.disabled = true;
+            payBtn.textContent = "Создаём счёт...";
+            errorMsg.textContent = "";
+
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (!userId) {
+                errorMsg.textContent = "Откройте страницу через Telegram.";
+                payBtn.disabled = false;
+                payBtn.textContent = `Перейти к оплате ${selectedAmount} ₽`;
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/robokassa/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ user_id: userId, amount: selectedAmount }),
+                });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.error || `Ошибка сервера: ${res.status}`);
+                }
+
+                const { payment_url } = await res.json();
+                window.location.href = payment_url;
+
+            } catch (e) {
+                errorMsg.textContent = e.message || "Произошла ошибка.";
+                payBtn.disabled = false;
+                payBtn.textContent = `Перейти к оплате ${selectedAmount} ₽`;
+            }
+        });
+    </script>
+</body>
+</html>
