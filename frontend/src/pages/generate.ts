@@ -149,8 +149,8 @@ function buildMergedPrompt(): string {
   const additional = (document.getElementById("field-additional") as HTMLTextAreaElement | null)?.value.trim() ?? "";
 
   const rolePresets: Record<RoleMode, string> = {
-    designer: "ROLE: focus on restoration realism and likeness preservation",
-    manager:  "ROLE: focus on clean memorial portrait generation",
+    designer: "ROLE: REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece.",
+    manager:  "ROLE: REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece.",
     engraver: "ROLE: focus on high contrast engraving-ready output",
   };
 

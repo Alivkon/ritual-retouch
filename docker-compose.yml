@@ -1,8 +1,8 @@
 services:
   bot:
     build: .
-    image: imagetransformationtgbot-ts
-    container_name: imagetransformationtgbot_ts
+    image: ritual_retouch_bot
+    container_name: ritual_retouch
     restart: unless-stopped
     env_file: .env
     environment:
@@ -30,6 +30,6 @@ volumes:
 networks:
   imagetransformer_net:
     external: true
-    name: imagetransformationtgbot-ts_imagetransformer_net
+    name: imgtransform_net
   n8n_default:
     external: true

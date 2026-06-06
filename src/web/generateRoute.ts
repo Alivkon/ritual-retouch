@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import { InputFile, type Bot } from "grammy";
-import { WEBAPP_URL } from "../config.js";
 import {
   getUser,
   deductBalance,
@@ -16,7 +15,7 @@ import {
   getUserGenerations,
   getUserPayments,
 } from "../database.js";
-import { generateImage, KieError } from "../services/kieai.js";
+import { generateImage, uploadLocalFileToKie, KieError } from "../services/kieai.js";
 import { GENERATION_COST, ADMIN_ID, DISCOUNTED_COST, DISCOUNTED_USER_IDS } from "../config.js";
 import { requireAuth } from "./auth.js";
 
@@ -81,8 +80,6 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     // Derive absolute file path from URL like "/uploads/abc.jpg"
     const filename = path.basename(uploadUrl);
     const localFilePath = path.join(UPLOADS_DIR, filename);
-    // Public URL for KIE.ai to fetch the uploaded image
-    const publicImageUrl = `${WEBAPP_URL}${uploadUrl}`;
 
     const generationId = await createGeneration(dbUser.user_id, prompt, filename, cost, isFree);
 
@@ -96,7 +93,8 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     // Run generation asynchronously — client polls /status
     setImmediate(async () => {
       try {
-        const resultBytes = await generateImage(publicImageUrl, prompt);
+        const kieImageUrl = await uploadLocalFileToKie(localFilePath);
+        const resultBytes = await generateImage(kieImageUrl, prompt);
 
         const resultFilename = `${filename.replace(/_src\.jpg$/, "")}_result.jpg`;
         const resultPath = path.join(UPLOADS_DIR, resultFilename);

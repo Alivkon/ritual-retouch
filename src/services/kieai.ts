@@ -1,12 +1,43 @@
+import fs from "node:fs";
+import path from "node:path";
 import { KIE_API_KEY } from "../config.js";
 
 const API_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const TASK_STATUS_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
+const FILE_UPLOAD_URL = "https://api.kie.ai/api/file-base64-upload";
 
 const POLL_INTERVAL_MS = 4000;
 const POLL_MAX_ATTEMPTS = 45;
 
 export class KieError extends Error {}
+
+interface KieUploadResponse {
+  success: boolean;
+  code: number;
+  msg?: string;
+  data?: { downloadUrl: string };
+}
+
+export async function uploadLocalFileToKie(localPath: string): Promise<string> {
+  const buf = fs.readFileSync(localPath);
+  const ext = path.extname(localPath).toLowerCase();
+  const mime = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+  const base64Data = `data:${mime};base64,${buf.toString("base64")}`;
+
+  const resp = await fetch(FILE_UPLOAD_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${KIE_API_KEY.trim()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ base64Data, uploadPath: "memorial-retouch" }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const data = (await resp.json()) as KieUploadResponse;
+  if (!data.success || data.code !== 200) {
+    throw new KieError(`KIE upload failed: ${data.msg ?? JSON.stringify(data)}`);
+  }
+  const url = data.data?.downloadUrl;
+  if (!url) throw new KieError("KIE upload returned no downloadUrl");
+  return url;
+}
 
 interface KieCreateResponse {
   code: number;
