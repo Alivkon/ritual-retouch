@@ -71,10 +71,6 @@ export async function initDashboard(user: User, navigate: Navigate): Promise<voi
     howToSection.style.display = howToSection.style.display === "none" ? "block" : "none";
   });
 
-  // Nav button on the dashboard to go to wallet
-  document.querySelector<HTMLButtonElement>('[data-page="wallet"]')
-    ?.addEventListener("click", () => navigate("wallet"));
-
   try {
     const gens = await getGenerations(0, 6);
     renderRecentGallery(gens, navigate);

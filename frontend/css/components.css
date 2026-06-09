@@ -483,6 +483,7 @@
     max-width: 700px;
 }
 
+.modal.show,
 .modal-backdrop.show ~ .modal {
     opacity: 1;
     visibility: visible;

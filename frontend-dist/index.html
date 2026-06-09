@@ -6,13 +6,13 @@
     <meta name="description" content="Профессиональная ретушь и восстановление мемориальных фотографий. Подготовка портретов для гравировки, фотокерамики и памятников. Бережно, без искажения черт лица.">
     <meta name="keywords" content="ретушь фото памятник, восстановление фотографий, фото для гравировки, фотокерамика, мемориальный портрет, photo restoration memorial, engraving portrait preparation">
     <meta property="og:title" content="Ретушь фотографий для памятников и гравировки | Memorial Retouch AI">
-    <meta property="og:description" content="Профессиональная ретушь мемориальных фотографий. Подготовка под гравировку, фотокерамику и памятники. Результат за несколько минут.">
+    <meta property="og:description" content="Профессиональная ретушь мемориальных фотографий. Подготовка под гравировку, фотокерамику и памятники. Первый результат за несколько минут.">
     <link rel="icon" href="/favicon.ico" sizes="64x64">
     <title>Ретушь фотографий для памятников и гравировки | Memorial Retouch AI</title>
     
     <!-- CSS -->
-  <script type="module" crossorigin src="/assets/index-BcKtkgOC.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BsfofEXD.css">
+  <script type="module" crossorigin src="/assets/index-CPdovmyb.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CLKMdnAR.css">
 </head>
 <body>
     <!-- App Container -->
@@ -21,13 +21,6 @@
         <!-- Header -->
         <header class="header" id="header" style="display:none">
             <div class="header-content">
-                <div class="logo">
-                    <a href="#" class="logo-link">
-                        <img class="logo-image logo-dark" src="/images/logo_dark_theme.png" alt="Memorial Retouch AI">
-                        <img class="logo-image logo-light-mobile" src="/images/logo_light_theme.png" alt="Memorial Retouch AI">
-                    </a>
-                </div>
-                
                 <nav class="nav-menu" id="nav-menu">
                     <button class="nav-item" data-page="dashboard">
                         <span>🏛 Главная</span>
@@ -39,7 +32,7 @@
                         <span>📂 Примеры работ</span>
                     </button>
                     <button class="nav-item" data-page="wallet">
-                        <span>💳 Тарифы</span>
+                        <span>💳 Оплатить</span>
                     </button>
                 </nav>
 
@@ -101,10 +94,10 @@
 
                     <!-- Trust Bar -->
                     <div class="trust-bar">
-                        <div class="trust-badge">🎯 Без изменения черт лица</div>
+                        <div class="trust-badge">🎯 Сохранение портретного сходства</div>
                         <div class="trust-badge">🕊 Бережная реставрация</div>
                         <div class="trust-badge">🏛 Подходит для памятников и фотокерамики</div>
-                        <div class="trust-badge">⏱ Результат за несколько минут</div>
+                        <div class="trust-badge">⏱ Первый результат за несколько минут</div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -130,7 +123,7 @@
                                 <li>Восстанавливает чёткость и детали мемориального портрета</li>
                                 <li>Удаляет царапины, пятна, шум и дефекты</li>
                                 <li>Готовит фото для гравировки или фотокерамики</li>
-                                <li>Не изменяет черты лица — полностью сохраняет сходство</li>
+                                <li>Стремится сохранить портретное сходство и основные черты лица</li>
                             </ul>
 
                             <h4>✅ Примеры задач:</h4>
@@ -149,6 +142,18 @@
                             </ul>
 
                             <p><em>💡 Для сложных задач используйте переключатель режимов на странице обработки.</em></p>
+                        </div>
+                    </div>
+
+                    <div class="how-to-section important-section">
+                        <div class="how-to-card">
+                            <h3>Важно</h3>
+                            <ul>
+                                <li>AI-обработка не заменяет финальную проверку специалистом.</li>
+                                <li>Для гравировки на камне может потребоваться дополнительная техническая подготовка.</li>
+                                <li>Чем лучше исходное фото, тем точнее результат.</li>
+                                <li>Для сложных случаев лучше сгенерировать несколько фотографий одного человека для сверки сходства.</li>
+                            </ul>
                         </div>
                     </div>
 
@@ -173,7 +178,7 @@
                         <!-- Photo Upload Section -->
                         <div class="upload-section">
                             <h2>📸 Загрузите фото</h2>
-                            <p class="section-hint">Загрузите фото с четким изображением вашего лица</p>
+                            <p class="section-hint">Загрузите портрет с хорошо различимым лицом</p>
 
                             <div class="upload-zone" id="upload-zone">
                                 <input type="file" id="photo-input" accept="image/*" hidden>
@@ -263,6 +268,14 @@
                                     <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="500"></textarea>
                                 </div>
                             </div>
+
+                            <div class="alert alert-info prompt-examples">
+                                <div class="alert-content">
+                                    <div class="alert-title">Примеры запроса</div>
+                                    <p>«Аккуратный портрет по грудь, темный костюм, светлый нейтральный фон, сохранить возраст и черты лица.»</p>
+                                    <p>«Черно-белый портрет для гравировки на черном граните, усилить светотень, сохранить сходство.»</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Generate Button -->
@@ -319,6 +332,12 @@
                                 <button class="btn btn-sm btn-secondary" id="grayscale-toggle" style="margin-top: var(--space-sm);">
                                     Ч/Б предпросмотр
                                 </button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning result-warning">
+                            <div class="alert-content">
+                                Перед передачей изображения в производство проверьте сходство лица, возраст, форму глаз, носа, губ и общий характер портрета.
                             </div>
                         </div>
 
@@ -550,20 +569,20 @@
                         <div class="topup-options" id="topup-options">
                             <button class="topup-card" data-amount="500">
                                 <div class="topup-card-title">На пробу</div>
-                                <div class="topup-card-desc">10 премиум-обработок высокого разрешения</div>
+                                <div class="topup-card-desc">10 обработок с возможностью скачать результат в высоком разрешении</div>
                                 <div class="topup-card-price">500 ₽</div>
                                 <div class="topup-card-per">50 руб. / обработка</div>
                             </button>
                             <button class="topup-card" data-amount="1500">
-                                <div class="topup-card-title">Профессиональный</div>
-                                <div class="topup-card-desc">40 обработок + приоритетная очередь</div>
+                                <div class="topup-card-title">Профи</div>
+                                <div class="topup-card-desc">40 обработок + ускоренная обработка при высокой нагрузке</div>
                                 <div class="topup-card-price">1 500 ₽</div>
                                 <div class="topup-card-per">37 руб. / обработка</div>
                             </button>
                             <button class="topup-card popular" data-amount="3000">
                                 <div class="topup-badge-label">Популярно</div>
                                 <div class="topup-card-title">Мастерская (Сезонный)</div>
-                                <div class="topup-card-desc">100 обработок + VIP поддержка</div>
+                                <div class="topup-card-desc">100 обработок + приоритетная поддержка</div>
                                 <div class="topup-card-price">3 000 ₽</div>
                                 <div class="topup-card-per">30 руб. / обработка</div>
                             </button>

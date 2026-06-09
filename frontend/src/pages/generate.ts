@@ -29,7 +29,7 @@ interface PresetDef {
 }
 
 const PRESET_DEFINITIONS: Record<string, PresetDef> = {
-  face_quality:  { field: "additional", text: "restore facial detail while preserving likeness, улучшить качество лица" },
+  face_quality:  { field: "additional", text: "" },
   detail:        { field: "additional", text: "enhance fine detail, повысить детализацию" },
   denoise:       { field: "additional", text: "remove digital noise and grain, удалить шум" },
   ceramic:       { field: "additional", text: "prepare for photo-ceramic production, подготовить под фотокерамику" },
@@ -221,9 +221,9 @@ function setLoading(on: boolean): void {
   const btn = document.getElementById("generate-btn") as HTMLButtonElement | null;
   const spinner = document.getElementById("btn-spinner");
   const label = document.getElementById("btn-label");
-  if (btn) btn.disabled = on;
+  if (btn) btn.disabled = on || !hasPhoto;
   if (spinner) spinner.style.display = on ? "inline-block" : "none";
-  if (label) label.textContent = on ? "Идёт обработка..." : "Обработать фото";
+  if (label) label.textContent = on ? "Идет обработка" : "Обработать фото";
 }
 
 function showStatus(text: string): void {

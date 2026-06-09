@@ -85,17 +85,22 @@ function navigate(page: string, data?: GenerationResult): void {
 }
 
 function openWalletModal(): void {
-  if (!currentUser) return;
+  if (!currentUser) {
+    showAuthOverlay(() => openWalletModal());
+    return;
+  }
   const backdrop = document.getElementById("wallet-modal-backdrop");
   const modal = document.getElementById("wallet-modal");
   if (backdrop) backdrop.classList.add("show");
-  if (modal) void initWallet(currentUser);
+  if (modal) modal.classList.add("show");
+  void initWallet(currentUser);
 }
 
 function closeWalletModal(): void {
   const backdrop = document.getElementById("wallet-modal-backdrop");
   const modal = document.getElementById("wallet-modal");
   if (backdrop) backdrop.classList.remove("show");
+  if (modal) modal.classList.remove("show");
 }
 
 // ── Auth overlay ───────────────────────────────────────────────────────────
