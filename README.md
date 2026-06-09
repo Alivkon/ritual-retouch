@@ -49,4 +49,4 @@ docker compose logs -f bot
 После запуска:
 - Бот работает в контейнере `imagetransformationtgbot_ts`
 - PostgreSQL — в контейнере `postgre_imagetransformer`
-- Traefik автоматически выдаёт TLS и роутит трафик на `imagetransformation.ru`
+- Traefik автоматически выдаёт TLS и роутит трафик на `ritual-retouch.ru`

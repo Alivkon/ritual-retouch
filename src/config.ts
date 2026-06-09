@@ -32,7 +32,7 @@ export const TOPUP_OPTIONS = [100, 500, 1000, 2000] as const;
 
 export const YOOKASSA_SHOP_ID = required("YOOKASSA_SHOP_ID");
 export const YOOKASSA_SECRET_KEY = required("YOOKASSA_SECRET_KEY");
-export const WEBAPP_URL = optional("WEBAPP_URL", "https://imagetransformation.ru");
+export const WEBAPP_URL = optional("WEBAPP_URL", "https://ritual-retouch.ru");
 export const WEB_SERVER_PORT = parseInt(optional("WEB_SERVER_PORT", "8080"), 10);
 
 export const SMTP_HOST = optional("SMTP_HOST", "smtp.beget.com");
