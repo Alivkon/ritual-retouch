@@ -1,17 +1,17 @@
 import { Composer } from "grammy";
-import { getUser, addBalance, savePayment } from "../database.js";
+import { getUser, savePayment } from "../database.js";
 import { topupAmountsKb, mainMenuKb } from "../keyboards/inline.js";
 import { YOOKASSA_TOKEN, ADMIN_ID, MIN_TOPUP, TOPUP_OPTIONS } from "../config.js";
 
 export const paymentRouter = new Composer();
 
 paymentRouter.command("topup", async (ctx) => {
-  await ctx.reply("💳 Выберите сумму пополнения:", { reply_markup: topupAmountsKb() });
+  await ctx.reply("💳 Выберите пакет обработок:", { reply_markup: topupAmountsKb() });
 });
 
 paymentRouter.callbackQuery("topup", async (ctx) => {
   await ctx.answerCallbackQuery();
-  await ctx.reply("💳 Выберите сумму пополнения:", { reply_markup: topupAmountsKb() });
+  await ctx.reply("💳 Выберите пакет обработок:", { reply_markup: topupAmountsKb() });
 });
 
 paymentRouter.callbackQuery(/^topup_(\d+)$/, async (ctx) => {
@@ -36,7 +36,7 @@ paymentRouter.callbackQuery(/^topup_(\d+)$/, async (ctx) => {
     receipt: {
       items: [
         {
-          description: `Пополнение баланса на ${amount}₽`,
+          description: `Пакет обработок на ${amount}₽`,
           quantity: "1.00",
           amount: { value: `${amount}.00`, currency: "RUB" },
           vat_code: 2,
@@ -49,13 +49,13 @@ paymentRouter.callbackQuery(/^topup_(\d+)$/, async (ctx) => {
 
   await ctx.api.sendInvoice(
     ctx.from.id,
-    "Пополнение баланса",
-    `Пополнение баланса на ${amount}₽ для генерации изображений.\n\n` +
+    "Оплата пакета",
+    `Пакет обработок на ${amount}₽ для генерации изображений.\n\n` +
     "Сейчас откроется приложение для оплаты. " +
     "Бот не имеет доступа к нему и не может управлять или сохранять ваши персональные данные.",
     `topup_${amount}_${ctx.from.id}`,
     "RUB",
-    [{ label: `Пополнение ${amount}₽`, amount: amountKopecks }],
+    [{ label: `Пакет ${amount}₽`, amount: amountKopecks }],
     {
       provider_token: YOOKASSA_TOKEN,
       start_parameter: "topup",
@@ -75,7 +75,6 @@ paymentRouter.on("message:successful_payment", async (ctx) => {
   const amountRub = payment.total_amount / 100;
   const userId = ctx.from.id;
 
-  await addBalance(userId, amountRub);
   await savePayment({
     userId,
     amount: amountRub,
@@ -85,12 +84,13 @@ paymentRouter.on("message:successful_payment", async (ctx) => {
   });
 
   const dbUser = await getUser(userId);
-  const newBalance = dbUser?.balance ?? amountRub;
+  const remaining = dbUser?.package_generations_remaining ?? 0;
+  const packageTitle = dbUser?.package_title ?? "пакет обработок";
 
   await ctx.reply(
     `✅ Оплата прошла успешно!\n\n` +
-    `Зачислено: <b>${amountRub.toFixed(0)}₽</b>\n` +
-    `Ваш баланс: <b>${newBalance.toFixed(0)}₽</b>`,
+    `Пакет: <b>${packageTitle}</b>\n` +
+    `Доступно обработок: <b>${remaining}</b>`,
     { reply_markup: mainMenuKb(), parse_mode: "HTML" },
   );
 

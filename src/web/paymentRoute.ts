@@ -5,6 +5,7 @@ import {
   creditYookassaPayment,
 } from "../database.js";
 import {
+  PACKAGE_DEFINITIONS,
   TOPUP_OPTIONS,
   YOOKASSA_SHOP_ID,
   YOOKASSA_SECRET_KEY,
@@ -19,6 +20,7 @@ function yookassaAuthHeader(): string {
 async function yookassaCreatePayment(
   userId: number,
   amount: number,
+  packageCode: string,
 ): Promise<Record<string, unknown>> {
   const resp = await fetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",
@@ -31,8 +33,8 @@ async function yookassaCreatePayment(
       amount: { value: amount.toFixed(2), currency: "RUB" },
       confirmation: { type: "embedded" },
       capture: true,
-      description: `Пополнение баланса на ${amount}₽`,
-      metadata: { user_id: String(userId) },
+      description: `Пакет обработок ${packageCode} на ${amount}₽`,
+      metadata: { user_id: String(userId), package_code: packageCode },
     }),
     signal: AbortSignal.timeout(15_000),
   });
@@ -70,8 +72,13 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance): void {
       return reply.code(400).send({ error: `Invalid amount. Allowed: ${TOPUP_OPTIONS.join(", ")}` });
     }
 
+    const selectedPackage = PACKAGE_DEFINITIONS.find((pkg) => pkg.amount === amount);
+    if (!selectedPackage) {
+      return reply.code(400).send({ error: "Package not found" });
+    }
+
     try {
-      const payment = await yookassaCreatePayment(user.user_id, amount);
+      const payment = await yookassaCreatePayment(user.user_id, amount, selectedPackage.code);
       const confirmation = payment["confirmation"] as Record<string, unknown> | undefined;
       const token = confirmation?.["confirmation_token"];
       return reply.send({ confirmation_token: token, payment_id: payment["id"] });
@@ -102,7 +109,13 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance): void {
 
     if (payment.status !== "succeeded") {
       const dbUser = await getUser(user.user_id);
-      return reply.send({ credited: false, status: payment.status, balance: dbUser?.balance ?? 0 });
+      return reply.send({
+        credited: false,
+        status: payment.status,
+        balance: 0,
+        package_generations_remaining: dbUser?.package_generations_remaining ?? 0,
+        package_title: dbUser?.package_title ?? null,
+      });
     }
 
     const metadataUserId = parseInt(payment.metadata?.user_id ?? "0", 10);
@@ -117,7 +130,13 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance): void {
     }
 
     const result = await creditYookassaPayment({ userId: user.user_id, amount, yookassaPaymentId: paymentId });
-    return reply.send({ credited: result.credited, status: payment.status, balance: result.balance });
+    return reply.send({
+      credited: result.credited,
+      status: payment.status,
+      balance: 0,
+      package_generations_remaining: result.generationsRemaining,
+      package_title: result.packageTitle,
+    });
   });
 
 }

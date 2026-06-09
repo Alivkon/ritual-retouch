@@ -109,11 +109,20 @@ export async function getGenerations(page = 0, limit = 20): Promise<Generation[]
   return request<Generation[]>(`/api/web/generations?page=${page}&limit=${limit}`);
 }
 
-export async function getBalance(): Promise<{ balance: number; free_generations: number; total_generations: number }> {
+export async function getBalance(): Promise<{
+  balance: number;
+  free_generations: number;
+  total_generations: number;
+  has_package: boolean;
+  package_code: string | null;
+  package_title: string | null;
+  package_generations_total: number;
+  package_generations_remaining: number;
+}> {
   return request("/api/web/balance");
 }
 
-export async function getPayments(): Promise<{ id: number; amount: number; created_at: string }[]> {
+export async function getPayments(): Promise<{ id: number; amount: number; package_title: string | null; created_at: string }[]> {
   return request("/api/web/payments");
 }
 
@@ -125,11 +134,21 @@ export async function createYookassaPayment(amount: number): Promise<{ confirmat
   });
 }
 
-export async function confirmYookassaPayment(paymentId: string): Promise<{ credited: boolean; status?: string; balance: number }> {
+export async function confirmYookassaPayment(paymentId: string): Promise<{
+  credited: boolean;
+  status?: string;
+  balance: number;
+  package_generations_remaining: number;
+  package_title: string | null;
+}> {
   return request("/api/web/payment/yookassa/confirm", {
     method: "POST",
     body: JSON.stringify({ payment_id: paymentId }),
   });
+}
+
+export async function linkTelegramAccount(): Promise<{ bot_url: string; expires_in_seconds: number }> {
+  return request("/api/auth/telegram-link", { method: "POST" });
 }
 
 export function sleep(ms: number): Promise<void> {

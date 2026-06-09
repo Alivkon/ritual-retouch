@@ -4,19 +4,18 @@ import type { FastifyInstance } from "fastify";
 import { InputFile, type Bot } from "grammy";
 import {
   getUser,
-  deductBalance,
-  deductFreeGeneration,
+  reserveGenerationCredit,
+  refundGenerationCredit,
   incrementTotalGenerations,
   createGeneration,
   completeGeneration,
   failGeneration,
-  addBalance,
   getGenerationById,
   getUserGenerations,
   getUserPayments,
 } from "../database.js";
 import { generateImage, uploadLocalFileToKie, KieError } from "../services/kieai.js";
-import { GENERATION_COST, ADMIN_ID, DISCOUNTED_COST, DISCOUNTED_USER_IDS } from "../config.js";
+import { ADMIN_ID } from "../config.js";
 import { requireAuth } from "./auth.js";
 
 const UPLOADS_DIR = path.resolve(__dirname, "../../uploads");
@@ -63,17 +62,10 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     const dbUser = await getUser(user.user_id);
     if (!dbUser) return reply.code(404).send({ error: "User not found" });
 
-    const isDiscounted = DISCOUNTED_USER_IDS.has(dbUser.user_id);
-    const effectiveCost = isDiscounted ? DISCOUNTED_COST : GENERATION_COST;
-    let isFree = 0;
-    let cost = effectiveCost;
-
-    if (dbUser.free_generations > 0) {
-      isFree = 1;
-      cost = 0;
-    } else if (dbUser.balance < effectiveCost) {
+    const reservation = await reserveGenerationCredit(dbUser.user_id);
+    if (!reservation) {
       return reply.code(402).send({
-        error: `Insufficient balance. Cost: ${effectiveCost}₽, balance: ${dbUser.balance.toFixed(0)}₽`,
+        error: "Нет доступных обработок. Купите пакет, чтобы продолжить.",
       });
     }
 
@@ -81,13 +73,7 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     const filename = path.basename(uploadUrl);
     const localFilePath = path.join(UPLOADS_DIR, filename);
 
-    const generationId = await createGeneration(dbUser.user_id, prompt, filename, cost, isFree);
-
-    if (isFree) {
-      await deductFreeGeneration(dbUser.user_id);
-    } else {
-      await deductBalance(dbUser.user_id, cost);
-    }
+    const generationId = await createGeneration(dbUser.user_id, prompt, filename, 0, 0, reservation.userPackageId, 1);
     await incrementTotalGenerations(dbUser.user_id);
 
     // Run generation asynchronously — client polls /status
@@ -115,7 +101,7 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
 
       } catch (err) {
         await failGeneration(generationId);
-        if (!isFree) await addBalance(dbUser.user_id, cost);
+        await refundGenerationCredit(reservation.userPackageId);
         fastify.log.error("Web generation error for gen %d: %s", generationId, err);
       }
     });
@@ -179,9 +165,14 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     if (!dbUser) return reply.code(404).send({ error: "User not found" });
 
     return reply.send({
-      balance: dbUser.balance,
-      free_generations: dbUser.free_generations,
+      balance: 0,
+      free_generations: dbUser.package_generations_remaining,
       total_generations: dbUser.total_generations,
+      has_package: dbUser.package_code !== null,
+      package_code: dbUser.package_code,
+      package_title: dbUser.package_title,
+      package_generations_total: dbUser.package_generations_total,
+      package_generations_remaining: dbUser.package_generations_remaining,
     });
   });
 }

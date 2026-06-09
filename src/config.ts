@@ -15,8 +15,8 @@ export const KIE_API_KEY = required("KIE_API_KEY");
 export const YOOKASSA_TOKEN = required("YOOKASSA_TOKEN");
 export const ADMIN_ID = parseInt(required("ADMIN_ID"), 10);
 
-export const GENERATION_COST = parseInt(optional("GENERATION_COST", "20"), 10);
-export const DISCOUNTED_COST = parseInt(optional("DISCOUNTED_COST", "5"), 10);
+export const GENERATION_COST = parseInt(optional("GENERATION_COST", "1"), 10);
+export const DISCOUNTED_COST = parseInt(optional("DISCOUNTED_COST", "1"), 10);
 export const DISCOUNTED_USER_IDS: Set<number> = new Set(
   (optional("DISCOUNTED_USER_IDS", ""))
     .split(",")
@@ -28,11 +28,17 @@ export const MIN_TOPUP = parseInt(optional("MIN_TOPUP", "100"), 10);
 export const DATABASE_URL = required("DATABASE_URL");
 export const FREE_GENERATIONS = parseInt(optional("FREE_GENERATIONS", "3"), 10);
 
-export const TOPUP_OPTIONS = [100, 500, 1000, 2000] as const;
+export const PACKAGE_DEFINITIONS = [
+  { code: "trial", title: "На пробу", generations: 10, amount: 500 },
+  { code: "professional", title: "Профессиональный", generations: 40, amount: 1500 },
+  { code: "workshop", title: "Мастерская / сезонный", generations: 100, amount: 3000 },
+] as const;
+export const TOPUP_OPTIONS = [500, 1500, 3000] as const;
 
 export const YOOKASSA_SHOP_ID = required("YOOKASSA_SHOP_ID");
 export const YOOKASSA_SECRET_KEY = required("YOOKASSA_SECRET_KEY");
 export const WEBAPP_URL = optional("WEBAPP_URL", "https://ritual-retouch.ru");
+export const TELEGRAM_BOT_USERNAME = optional("TELEGRAM_BOT_USERNAME", "RitualRetouch_bot");
 export const WEB_SERVER_PORT = parseInt(optional("WEB_SERVER_PORT", "8080"), 10);
 
 export const SMTP_HOST = optional("SMTP_HOST", "smtp.beget.com");

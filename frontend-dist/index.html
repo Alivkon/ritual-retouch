@@ -11,8 +11,8 @@
     <title>Ретушь фотографий для памятников и гравировки | Memorial Retouch AI</title>
     
     <!-- CSS -->
-  <script type="module" crossorigin src="/assets/index-CPdovmyb.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CLKMdnAR.css">
+  <script type="module" crossorigin src="/assets/index-B5hgJvFa.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dqy_lJgW.css">
 </head>
 <body>
     <!-- App Container -->
@@ -73,14 +73,14 @@
                     <div class="info-panel">
                         <div class="info-grid">
                             <div class="info-card">
-                                <div class="info-label">Баланс</div>
-                                <div class="info-value balance" id="balance">0₽</div>
+                                <div class="info-label">Пакет</div>
+                                <div class="info-value balance" id="balance">Пакет не выбран</div>
                                 <button class="btn btn-primary btn-sm" data-page="wallet">
                                     Пополнить
                                 </button>
                             </div>
                             <div class="info-card">
-                                <div class="info-label">Свободных обработок</div>
+                                <div class="info-label">Доступно обработок</div>
                                 <div class="info-value free-gens" id="free-generations">3</div>
                                 <div class="info-hint">осталось</div>
                             </div>
@@ -90,6 +90,14 @@
                                 <div class="info-hint">обработок</div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Telegram Link Section -->
+                    <div class="link-telegram-section" id="link-telegram-section">
+                        <button class="btn btn-secondary btn-sm" id="link-telegram-btn">
+                            🤖 Связать с Telegram-ботом
+                        </button>
+                        <div id="link-telegram-result" style="display:none;margin-top:8px;"></div>
                     </div>
 
                     <!-- Trust Bar -->
@@ -212,10 +220,12 @@
                                 <button type="button" class="segment-btn" data-role="engraver">Для гравировщика</button>
                             </div>
 
-                            <!-- Sticky preset: always visible -->
-                            <div class="preset-sticky-bar">
-                                <button type="button" class="preset-btn sticky active" data-preset="face_quality" data-field="additional">
-                                    ✦ Улучшить качество лица
+                            <div class="enhance-row">
+                                <button type="button" id="enhance-portrait-btn" class="btn btn-outline enhance-portrait-btn">
+                                    ✨ Улучшить портрет
+                                </button>
+                                <button type="button" id="granite-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🪨 На чёрном граните
                                 </button>
                             </div>
 
@@ -266,14 +276,6 @@
                                 <div class="form-group">
                                     <label for="field-additional">Дополнительно</label>
                                     <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="500"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="alert alert-info prompt-examples">
-                                <div class="alert-content">
-                                    <div class="alert-title">Примеры запроса</div>
-                                    <p>«Аккуратный портрет по грудь, темный костюм, светлый нейтральный фон, сохранить возраст и черты лица.»</p>
-                                    <p>«Черно-белый портрет для гравировки на черном граните, усилить светотень, сохранить сходство.»</p>
                                 </div>
                             </div>
                         </div>
@@ -558,8 +560,8 @@
                     <!-- Current Balance -->
                     <div class="wallet-info">
                         <div class="balance-card">
-                            <div class="balance-label">Текущий баланс</div>
-                            <div class="balance-amount" id="wallet-balance">0₽</div>
+                            <div class="balance-label">Текущий пакет</div>
+                            <div class="balance-amount" id="wallet-balance">Пакет не выбран</div>
                         </div>
                     </div>
 

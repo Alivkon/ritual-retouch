@@ -5,7 +5,7 @@ export function mainMenuKb(userId = 0): InlineKeyboard {
   const kb = new InlineKeyboard()
     .text("📷 Обработать фото", "generate")
     .row()
-    .text("💳 Мой баланс", "balance")
+    .text("📦 Мой пакет", "balance")
     .text("➕ Пополнить", "topup")
     .row()
     .text("❓ Как это работает", "how_to");
@@ -40,7 +40,7 @@ export function topupAmountsKb(): InlineKeyboard {
 
 export function paywallKb(): InlineKeyboard {
   return new InlineKeyboard()
-    .text("➕ Пополнить баланс", "topup")
+    .text("➕ Купить пакет", "topup")
     .row()
     .text("◀️ В меню", "back_to_menu");
 }

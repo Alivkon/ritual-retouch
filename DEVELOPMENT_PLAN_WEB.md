@@ -108,7 +108,7 @@ web/
 ### Фаза 3: Функциональность
 - [ ] Полная интеграция с API
 - [ ] Система аутентификации
-- [ ] Система платежей (Yookassa/Robokassa)
+- [ ] Система платежей (YooKassa)
 - [ ] История и галерея
 - [ ] Уведомления пользователя
 
@@ -228,7 +228,7 @@ GET    /api/user/balance            - Текущий баланс
 - FastAPI / Flask
 - PostgreSQL
 - KIE API
-- Yookassa / Robokassa
+- YooKassa
 
 ---
 
@@ -242,7 +242,7 @@ GET    /api/user/balance            - Текущий баланс
 | JavaScript Logic | ⏳ **Завершена** | Vanilla JS, готово для TypeScript миграции |
 | TypeScript Logic | ⏳ **В очереди** | Миграция JavaScript в TypeScript |
 | API Integration | ⏳ **В очереди** | Интеграция с бэкэнд API |
-| Payment System | ⏳ **В очереди** | Yookassa/Robokassa интеграция |
+| Payment System | ⏳ **В очереди** | YooKassa интеграция |
 | Authentication | ⏳ **В очереди** | Система аутентификации |
 
 ---

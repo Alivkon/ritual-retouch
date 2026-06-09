@@ -9,9 +9,11 @@ import {
   createEmailVerification,
   consumeEmailVerification,
   markEmailVerified,
+  createTelegramLinkToken,
   type DbUser,
 } from "../database.js";
 import { sendVerificationEmail } from "../email.js";
+import { TELEGRAM_BOT_USERNAME } from "../config.js";
 
 const BCRYPT_ROUNDS = 10;
 
@@ -85,9 +87,14 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
       user: {
         user_id: user.user_id,
         email: user.email,
-        balance: user.balance,
-        free_generations: user.free_generations,
+        balance: 0,
+        free_generations: user.package_generations_remaining,
         total_generations: user.total_generations,
+        has_package: user.package_code !== null,
+        package_code: user.package_code,
+        package_title: user.package_title,
+        package_generations_total: user.package_generations_total,
+        package_generations_remaining: user.package_generations_remaining,
       },
     });
   });
@@ -129,6 +136,14 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     return reply.send({ message: "Письмо отправлено повторно." });
   });
 
+  fastify.post("/api/auth/telegram-link", async (req, reply) => {
+    const user = await requireAuth(req, reply);
+    if (!user) return;
+    const token = await createTelegramLinkToken(user.user_id);
+    const botUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=link_${token}`;
+    return reply.send({ bot_url: botUrl, expires_in_seconds: 900 });
+  });
+
   fastify.post("/api/auth/logout", async (req, reply) => {
     const auth = req.headers["authorization"] ?? "";
     if (auth.startsWith("Bearer ")) {
@@ -143,9 +158,14 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     return reply.send({
       user_id: user.user_id,
       email: (user as unknown as { email?: string }).email ?? null,
-      balance: user.balance,
-      free_generations: user.free_generations,
+      balance: 0,
+      free_generations: user.package_generations_remaining,
       total_generations: user.total_generations,
+      has_package: user.package_code !== null,
+      package_code: user.package_code,
+      package_title: user.package_title,
+      package_generations_total: user.package_generations_total,
+      package_generations_remaining: user.package_generations_remaining,
     });
   });
 }

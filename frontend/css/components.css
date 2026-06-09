@@ -1236,3 +1236,28 @@
     text-align: center;
     margin-top: var(--space-sm);
 }
+
+/* Enhance/Granite toggle buttons */
+.enhance-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.enhance-portrait-btn {
+    border: 1.5px solid var(--border-color, #444);
+    background: transparent;
+    color: var(--text-color, #fff);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+
+.enhance-portrait-btn.active {
+    border-color: var(--accent-color, #4f8ef7);
+    background: var(--accent-color, #4f8ef7);
+    color: #fff;
+}

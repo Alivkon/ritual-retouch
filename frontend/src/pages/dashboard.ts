@@ -1,5 +1,5 @@
 import type { User, Generation } from "../types.js";
-import { getGenerations } from "../api.js";
+import { getGenerations, linkTelegramAccount } from "../api.js";
 
 function parseDisplayPrompt(raw: string): string {
   const match = raw.match(/Дополнительно:\s*(.+)/s);
@@ -54,15 +54,33 @@ export async function initDashboard(user: User, navigate: Navigate): Promise<voi
   const freeGens = document.getElementById("free-generations");
   const totalGens = document.getElementById("total-generations");
 
-  if (balance) balance.textContent = `${user.balance.toFixed(0)}₽`;
-  if (freeGens) freeGens.textContent = String(user.free_generations);
+  if (balance) balance.textContent = user.package_title ?? "Пакет не выбран";
+  if (freeGens) freeGens.textContent = String(user.package_generations_remaining);
   if (totalGens) totalGens.textContent = String(user.total_generations);
 
-  const showExtra = user.free_generations > 0;
-  freeGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
-  totalGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
+  freeGens?.closest(".info-card")?.toggleAttribute("hidden", false);
+  totalGens?.closest(".info-card")?.toggleAttribute("hidden", false);
   const balanceCard = balance?.closest<HTMLElement>(".info-card");
-  if (balanceCard) balanceCard.style.gridColumn = showExtra ? "" : "1 / -1";
+  if (balanceCard) balanceCard.style.gridColumn = "";
+
+  const linkTgBtn = document.getElementById("link-telegram-btn") as HTMLButtonElement | null;
+  const linkTgResult = document.getElementById("link-telegram-result");
+  linkTgBtn?.addEventListener("click", () => {
+    if (linkTgBtn.disabled) return;
+    linkTgBtn.disabled = true;
+    void linkTelegramAccount()
+      .then(({ bot_url }) => {
+        if (!linkTgResult) return;
+        linkTgResult.innerHTML =
+          `<a href="${bot_url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Открыть @RitualRetouch_bot</a>` +
+          `<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0">Ссылка действует 15 минут. Откройте бота и он привяжет ваш Telegram к аккаунту.</p>`;
+        linkTgResult.style.display = "block";
+        linkTgBtn.style.display = "none";
+      })
+      .catch(() => {
+        linkTgBtn.disabled = false;
+      });
+  });
 
   const howToBtn = document.getElementById("how-to-btn");
   const howToSection = document.getElementById("how-to-section");

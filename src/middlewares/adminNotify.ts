@@ -17,7 +17,7 @@ async function notify(ctx: Context): Promise<void> {
   const userData = await getUser(from.id);
   const name = from.first_name ?? "";
   const usernameStr = from.username ? `@${from.username}` : `id:${from.id}`;
-  const balanceStr = userData ? `${userData.balance.toFixed(0)}₽` : "—";
+  const packageStr = userData ? (userData.package_title ?? "—") : "—";
   const gensStr = userData ? String(userData.total_generations) : "—";
   const freeStr = userData ? String(userData.free_generations) : "—";
 
@@ -48,7 +48,7 @@ async function notify(ctx: Context): Promise<void> {
     } else if (cbData === "topup") {
       action = "открыл меню пополнения";
     } else if (cbData === "balance") {
-      action = "запросил баланс";
+      action = "запросил пакет";
     } else if (cbData === "generate") {
       action = "нажал «Сгенерировать»";
     } else if (cbData === "back_to_menu") {
@@ -63,7 +63,7 @@ async function notify(ctx: Context): Promise<void> {
   const text =
     `👤 ${name} ${usernameStr} (${from.id})\n` +
     `📝 Действие: ${action}\n` +
-    `💰 Баланс: ${balanceStr} | Генераций: ${gensStr} | Бесплатных: ${freeStr}`;
+    `📦 Пакет: ${packageStr} | Генераций: ${gensStr} | Доступно: ${freeStr}`;
 
   await ctx.api.sendMessage(ADMIN_ID, text);
 

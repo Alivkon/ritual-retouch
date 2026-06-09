@@ -2,17 +2,16 @@ import { Composer, InputFile } from "grammy";
 import {
   getUser,
   getOrCreateUser,
-  deductBalance,
   deductFreeGeneration,
   incrementTotalGenerations,
   createGeneration,
   completeGeneration,
   failGeneration,
-  addBalance,
+  setFreeGenerations,
 } from "../database.js";
 import { generateImage, KieError } from "../services/kieai.js";
 import { mainMenuKb, paywallKb } from "../keyboards/inline.js";
-import { BOT_TOKEN, GENERATION_COST, ADMIN_ID, DISCOUNTED_COST, DISCOUNTED_USER_IDS } from "../config.js";
+import { BOT_TOKEN, ADMIN_ID } from "../config.js";
 
 export const generateRouter = new Composer();
 
@@ -63,24 +62,15 @@ generateRouter.on("message:photo").filter(
     const prompt = ctx.message.caption!;
 
     const isAdmin = user.id === ADMIN_ID;
-    const isDiscounted = DISCOUNTED_USER_IDS.has(user.id);
-    const effectiveCost = isDiscounted ? DISCOUNTED_COST : GENERATION_COST;
+    const isFree = isAdmin ? 1 : 0;
+    const cost = 0;
 
-    let isFree = 0;
-    let cost = effectiveCost;
-
-    if (isAdmin) {
-      isFree = 1;
-      cost = 0;
-    } else if (dbUser.free_generations > 0) {
-      isFree = 1;
-      cost = 0;
-    } else if (dbUser.balance < effectiveCost) {
+    if (!isAdmin && dbUser.package_generations_remaining <= 0) {
       await ctx.reply(
-        `⚠️ Недостаточно средств.\n\n` +
-        `Стоимость генерации: <b>${effectiveCost}₽</b>\n` +
-        `Ваш баланс: <b>${dbUser.balance.toFixed(0)}₽</b>\n\n` +
-        "Пополните баланс, чтобы продолжить.",
+        `⚠️ Нет доступных обработок.
+
+` +
+        "Купите пакет, чтобы продолжить.",
         { reply_markup: paywallKb(), parse_mode: "HTML" },
       );
       return;
@@ -90,10 +80,8 @@ generateRouter.on("message:photo").filter(
 
     const generationId = await createGeneration(user.id, prompt, photoFileId, cost, isFree);
 
-    if (isFree && !isAdmin) {
+    if (!isAdmin) {
       await deductFreeGeneration(user.id);
-    } else if (!isFree) {
-      await deductBalance(user.id, cost);
     }
     await incrementTotalGenerations(user.id);
 
@@ -105,12 +93,12 @@ generateRouter.on("message:photo").filter(
       resultBytes = await generateImage(imageUrl, prompt);
     } catch (err) {
       await failGeneration(generationId);
-      if (!isFree) await addBalance(user.id, cost);
+      if (!isAdmin) await setFreeGenerations(user.id, dbUser.package_generations_remaining);
       await ctx.api.deleteMessage(ctx.chat!.id, processingMsg.message_id).catch(() => undefined);
 
       const errMsg = err instanceof KieError ? String(err.message) : String(err);
       await ctx.reply(
-        `❌ Ошибка при генерации: ${errMsg}\n\nСредства возвращены на баланс.`,
+        `❌ Ошибка при генерации: ${errMsg}\n\nСписанная обработка возвращена в пакет.`,
         { reply_markup: mainMenuKb() },
       );
       return;
@@ -167,9 +155,9 @@ generateRouter.callbackQuery("balance", async (ctx) => {
     return;
   }
   await ctx.reply(
-    `💰 Ваш баланс: <b>${dbUser.balance.toFixed(0)}₽</b>\n` +
-    `🎨 Всего генераций: <b>${dbUser.total_generations}</b>\n` +
-    `🎁 Бесплатных генераций: <b>${dbUser.free_generations}</b>`,
+    `📦 Пакет: <b>${dbUser.package_title ?? "не выбран"}</b>\n` +
+    `🎨 Всего обработок: <b>${dbUser.total_generations}</b>\n` +
+    `✅ Доступно обработок: <b>${dbUser.package_generations_remaining}</b>`,
     { reply_markup: mainMenuKb(), parse_mode: "HTML" },
   );
 });

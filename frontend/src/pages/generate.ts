@@ -2,6 +2,10 @@ import { PhotoUploader } from "../components/uploader.js";
 import { notifications } from "../components/notifications.js";
 import { uploadPhoto, startGeneration, getGenerationStatus, sleep, getToken } from "../api.js";
 
+const ENHANCE_TEXT = `REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece. `;
+
+const GRANITE_TEXT = `A photo of a high-resolution laser engraving on a polished black granite slab. The texture must be rich and deep, with varying depths of engraving creating an intricate grayscale. The entire image should look like it's carven into stone. Re-render the subject with stippling and detailed hatching lines to create form and shadow, giving it an old-world, historical appearance like a classic etching. Ensure every detail of clothing, features, or elements is sharp and clear. The pose and key features must be preserved, but transformed into a classic engraved style. Single, directional light from the front, mimicking a strong candle flame, illuminating the engraved grooves and casting soft, detailed shadows. Fine-detail engraving, hyperrealistic stippling, etched, grayscale, black granite texture, memorial, commemorative, intricately detailed, no watermarks, classic art, laser etching.`;
+
 export interface GenerationResult {
   generationId: number;
   resultUrl: string;
@@ -20,6 +24,8 @@ let currentRole: RoleMode = "designer";
 let invertPreviewActive = false;
 let currentOnNeedAuth: ((onSuccess: () => void) => void) | undefined;
 let currentOnGenerationStarted: (() => Promise<void>) | undefined;
+let enhanceActive = false;
+let graniteActive = false;
 
 interface PresetDef {
   field: "clothing" | "pose" | "background" | "additional";
@@ -29,7 +35,6 @@ interface PresetDef {
 }
 
 const PRESET_DEFINITIONS: Record<string, PresetDef> = {
-  face_quality:  { field: "additional", text: "" },
   detail:        { field: "additional", text: "enhance fine detail, повысить детализацию" },
   denoise:       { field: "additional", text: "remove digital noise and grain, удалить шум" },
   ceramic:       { field: "additional", text: "prepare for photo-ceramic production, подготовить под фотокерамику" },
@@ -85,12 +90,20 @@ export function initGenerate(
     void handleGenerate(navigate);
   });
 
-  // Apply face_quality sticky preset text on load
-  const additionalEl = document.getElementById("field-additional") as HTMLTextAreaElement | null;
-  const def = PRESET_DEFINITIONS["face_quality"];
-  if (additionalEl && def && !additionalEl.value) {
-    additionalEl.value = def.text;
-  }
+  const enhanceBtn = document.getElementById("enhance-portrait-btn") as HTMLButtonElement | null;
+  const graniteBtn = document.getElementById("granite-btn") as HTMLButtonElement | null;
+
+  enhanceBtn?.addEventListener("click", () => {
+    enhanceActive = !enhanceActive;
+    enhanceBtn.classList.toggle("active", enhanceActive);
+    updateGenerateBtn();
+  });
+
+  graniteBtn?.addEventListener("click", () => {
+    graniteActive = !graniteActive;
+    graniteBtn.classList.toggle("active", graniteActive);
+    updateGenerateBtn();
+  });
 }
 
 function switchRole(role: RoleMode): void {
@@ -115,8 +128,6 @@ function handlePresetClick(btn: HTMLButtonElement): void {
   const def = PRESET_DEFINITIONS[presetKey];
   if (!def) return;
 
-  if (presetKey === "face_quality") return;
-
   const isActive = btn.classList.toggle("active");
 
   const fieldEl = document.getElementById(`field-${def.field}`) as HTMLInputElement | HTMLTextAreaElement | null;
@@ -140,6 +151,8 @@ function handlePresetClick(btn: HTMLButtonElement): void {
     if (isActive) enableInvertPreview();
     else disableInvertPreview();
   }
+
+  updateGenerateBtn();
 }
 
 function buildMergedPrompt(): string {
@@ -148,25 +161,30 @@ function buildMergedPrompt(): string {
   const background = (document.getElementById("field-background") as HTMLInputElement | null)?.value.trim() ?? "";
   const additional = (document.getElementById("field-additional") as HTMLTextAreaElement | null)?.value.trim() ?? "";
 
-  const rolePresets: Record<RoleMode, string> = {
-    designer: "ROLE: REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece.",
-    manager:  "ROLE: REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece.",
-    engraver: "ROLE: focus on high contrast engraving-ready output",
+  const roleSuffix: Record<RoleMode, string> = {
+    designer: "",
+    manager:  "",
+    engraver: "focus on high contrast engraving-ready output",
   };
 
-  const parts: string[] = [rolePresets[currentRole]];
-  if (clothing)   parts.push(`Одежда: ${clothing}`);
-  if (pose)       parts.push(`Поза: ${pose}`);
-  if (background) parts.push(`Фон: ${background}`);
-  if (additional) parts.push(`Дополнительно: ${additional}`);
+  const parts: string[] = [];
+  if (clothing)                   parts.push(`Одежда: ${clothing}`);
+  if (pose)                       parts.push(`Поза: ${pose}`);
+  if (background)                 parts.push(`Фон: ${background}`);
+  if (additional)                 parts.push(`Дополнительно: ${additional}`);
+  if (roleSuffix[currentRole])    parts.push(roleSuffix[currentRole]);
 
-  return parts.join("\n");
+  const base = parts.join("\n");
+  return (enhanceActive ? ENHANCE_TEXT : "")
+       + (graniteActive ? GRANITE_TEXT : "")
+       + base;
 }
 
 function updateGenerateBtn(): void {
   const btn = document.getElementById("generate-btn") as HTMLButtonElement | null;
   if (!btn) return;
-  btn.disabled = !hasPhoto;
+  const additional = (document.getElementById("field-additional") as HTMLTextAreaElement | null)?.value.trim() ?? "";
+  btn.disabled = !hasPhoto || (additional.length === 0 && !enhanceActive && !graniteActive);
 }
 
 async function handleGenerate(navigate: Navigate): Promise<void> {

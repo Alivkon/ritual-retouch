@@ -33,16 +33,15 @@ async function refreshUserStats(): Promise<void> {
   const totalGens = document.getElementById("total-generations");
   const walletBalance = document.getElementById("wallet-balance");
 
-  if (balance) balance.textContent = `${stats.balance.toFixed(0)}₽`;
-  if (freeGens) freeGens.textContent = String(stats.free_generations);
+  if (balance) balance.textContent = stats.package_title ?? "Пакет не выбран";
+  if (freeGens) freeGens.textContent = String(stats.package_generations_remaining);
   if (totalGens) totalGens.textContent = String(stats.total_generations);
-  if (walletBalance) walletBalance.textContent = `${stats.balance.toFixed(0)}₽`;
+  if (walletBalance) walletBalance.textContent = stats.package_title ?? "Пакет не выбран";
 
-  const showExtra = stats.free_generations > 0;
-  freeGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
-  totalGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
+  freeGens?.closest(".info-card")?.toggleAttribute("hidden", false);
+  totalGens?.closest(".info-card")?.toggleAttribute("hidden", false);
   const balanceCard = balance?.closest<HTMLElement>(".info-card");
-  if (balanceCard) balanceCard.style.gridColumn = showExtra ? "" : "1 / -1";
+  if (balanceCard) balanceCard.style.gridColumn = "";
 }
 
 function navigate(page: string, data?: GenerationResult): void {
@@ -270,7 +269,7 @@ async function main(): Promise<void> {
     window.history.replaceState({}, "", "/");
   }
 
-  // После успешного платежа обновляем баланс
+  // После успешного платежа обновляем пакет
   const paymentSuccess = params.has("payment_success");
   const paymentId = params.get("payment_id");
   if (paymentSuccess) {
@@ -283,39 +282,45 @@ async function main(): Promise<void> {
     setupApp();
     
     if (paymentSuccess && currentUser) {
-      const oldBalance = currentUser.balance;
+      const oldRemaining = currentUser.package_generations_remaining;
       void initWallet(currentUser);
       openWalletModal();
 
       if (paymentId) {
         try {
           const result = await confirmYookassaPayment(paymentId);
-          currentUser = { ...currentUser, balance: result.balance };
+          currentUser = {
+            ...currentUser,
+            has_package: true,
+            package_title: result.package_title,
+            package_generations_remaining: result.package_generations_remaining,
+            free_generations: result.package_generations_remaining,
+          };
           await refreshUserStats();
           void initWallet(currentUser);
-          notifications.success(result.credited ? "Платёж успешно принят! Ваш баланс пополнен." : "Платёж уже был зачислен.");
+          notifications.success(result.credited ? "Пакет успешно оплачен. Обработки зачислены." : "Платёж уже был зачислен.");
           return;
         } catch {
           // Fall through to webhook polling below.
         }
       }
 
-      // Poll in background until webhook arrives and credits the balance (up to 30s)
+      // Poll in background until webhook arrives and credits the package (up to 30s)
       void (async () => {
         for (let i = 0; i < 10; i++) {
           await sleep(3000);
           try {
             const stats = await getBalance();
-            if (stats.balance > oldBalance) {
+            if (stats.package_generations_remaining > oldRemaining) {
               currentUser = { ...currentUser!, ...stats };
               await refreshUserStats();
               void initWallet(currentUser!);
-              notifications.success("Платёж успешно принят! Ваш баланс пополнен.");
+              notifications.success("Пакет успешно оплачен. Обработки зачислены.");
               return;
             }
           } catch { /* non-critical */ }
         }
-        notifications.info("Платёж обрабатывается. Баланс обновится в ближайшее время.");
+        notifications.info("Платёж обрабатывается. Пакет обновится в ближайшее время.");
       })();
     } else {
       navigate("dashboard");
