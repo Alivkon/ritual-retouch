@@ -9,6 +9,7 @@ import { registerAuthRoutes } from "./web/auth.js";
 import { registerUploadRoute } from "./web/uploadRoute.js";
 import { registerGenerateRoute } from "./web/generateRoute.js";
 import { registerWebPaymentRoutes } from "./web/paymentRoute.js";
+import { notifyAdminPaymentSuccess } from "./middlewares/adminNotify.js";
 import IPCIDR from "ip-cidr";
 import {
   ADMIN_ID,
@@ -155,7 +156,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
   registerAuthRoutes(fastify);
   registerUploadRoute(fastify);
   registerGenerateRoute(fastify, bot);
-  registerWebPaymentRoutes(fastify);
+  registerWebPaymentRoutes(fastify, bot);
 
   // Frontend SPA (served only if frontend-dist exists)
   const fs = await import("node:fs");
@@ -331,6 +332,15 @@ export async function startWebServer(bot: Bot): Promise<void> {
 
     const result = await creditYookassaPayment({ userId, amount, yookassaPaymentId: paymentId });
     const telegramUserId = (await getTelegramIdForAccount(userId)) ?? 0;
+    if (result.credited) {
+      await notifyAdminPaymentSuccess(bot.api, {
+        userId,
+        amount,
+        packageTitle: result.packageTitle,
+        generationsRemaining: result.generationsRemaining,
+        paymentId,
+      });
+    }
     return reply.send({ credited: result.credited, status: payment.status, generations_remaining: result.generationsRemaining, package_title: result.packageTitle });
   });
 
@@ -372,7 +382,17 @@ export async function startWebServer(bot: Bot): Promise<void> {
 
     const result = await creditYookassaPayment({ userId, amount, yookassaPaymentId: paymentId });
     const telegramUserId = (await getTelegramIdForAccount(userId)) ?? 0;
-    if (!result.credited || !telegramUserId) return reply.code(200).send();
+    if (!result.credited) return reply.code(200).send();
+
+    await notifyAdminPaymentSuccess(bot.api, {
+      userId,
+      amount,
+      packageTitle: result.packageTitle,
+      generationsRemaining: result.generationsRemaining,
+      paymentId,
+    });
+
+    if (!telegramUserId) return reply.code(200).send();
 
     await bot.api
       .sendMessage(

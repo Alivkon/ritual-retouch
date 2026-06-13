@@ -6,7 +6,6 @@ export function mainMenuKb(userId = 0): InlineKeyboard {
     .text("📷 Обработать фото", "generate")
     .row()
     .text("📦 Мой пакет", "balance")
-    .text("➕ Пополнить", "topup")
     .row()
     .text("❓ Как это работает", "how_to");
 

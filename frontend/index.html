@@ -40,9 +40,7 @@
                 </nav>
 
                 <div class="header-actions">
-                    <button class="btn-icon" id="theme-toggle" title="Переключить тему">
-                      <!--  🌙-->
-                    </button>
+
                     <button class="btn-icon" id="profile-menu" title="Профиль">
                         👤
                     </button>
@@ -63,6 +61,10 @@
             <button class="mobile-nav-item" data-page="wallet">
                 <span class="mobile-nav-icon">💳</span>
                 <span class="mobile-nav-label">Тарифы</span>
+            </button>
+            <button class="mobile-nav-item" id="mobile-profile-menu" title="Профиль">
+                <span class="mobile-nav-icon">👤</span>
+                <span class="mobile-nav-label">Профиль</span>
             </button>
         </nav>
 
@@ -96,11 +98,14 @@
                     </div>
 
                     <!-- Telegram Link Section -->
-                    <div class="link-telegram-section" id="link-telegram-section">
+                    <div class="link-telegram-section" id="link-telegram-section" style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn btn-secondary btn-sm" id="link-telegram-btn">
                             🤖 Связать с Telegram-ботом
                         </button>
-                        <div id="link-telegram-result" style="display:none;margin-top:8px;"></div>
+                        <a href="https://t.me/ritual_retouch_ru" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                            💬 Поддержка в телеграм
+                        </a>
+                        <div id="link-telegram-result" style="display:none;margin-top:8px;width:100%;"></div>
                     </div>
 
                     <!-- Trust Bar -->
@@ -195,8 +200,11 @@
                                 <input type="file" id="photo-input" accept="image/*" hidden>
                                 <div class="upload-placeholder" id="upload-placeholder">
                                     <div class="upload-icon">📤</div>
-                                    <p class="upload-title">Перетащите фото сюда</p>
-                                    <p class="upload-hint">или</p>
+                                    <p class="upload-title">
+                                        <span class="text-desktop">Перетащите фото сюда</span>
+                                        <span class="text-mobile">Нажмите для выбора фото</span>
+                                    </p>
+                                    <p class="upload-hint text-desktop">или</p>
                                     <button type="button" class="btn btn-secondary btn-sm" id="upload-btn">
                                         Выберите файл
                                     </button>
@@ -210,6 +218,10 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <p class="section-hint" id="generation-error-hint" style="display: none;">
+                                Сервер генерации не всегда справляется с первого раза, в случае ошибки просто попробуйте ещё раз.
+                            </p>
                         </div>
 
                         <!-- Profile Mode Section -->
@@ -227,6 +239,12 @@
                                 <button type="button" id="enhance-portrait-btn" class="btn btn-outline enhance-portrait-btn">
                                     ✨ Улучшить портрет
                                 </button>
+                                <button type="button" id="detail-enhance-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🔍 Улучшить детализацию
+                                </button>
+                                <button type="button" id="bw-restore-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🖤 Чёрно-белое фото
+                                </button>
                                 <button type="button" id="granite-btn" class="btn btn-outline enhance-portrait-btn">
                                     🪨 На чёрном граните
                                 </button>
@@ -234,10 +252,8 @@
 
                             <!-- Designer presets -->
                             <div class="preset-group" id="presets-designer">
-                                <button type="button" class="preset-btn" data-preset="detail" data-field="additional">Повысить детализацию</button>
                                 <button type="button" class="preset-btn" data-preset="denoise" data-field="additional">Удалить шум</button>
                                 <button type="button" class="preset-btn" data-preset="ceramic" data-field="additional">Под фотокерамику</button>
-                                <button type="button" class="preset-btn" data-preset="bw" data-field="additional">Черно-белый портрет</button>
                                 <button type="button" class="preset-btn" data-preset="clean_bg" data-field="additional">Очистить фон</button>
                                 <button type="button" class="preset-btn" data-preset="contrast" data-field="additional">Усилить контраст</button>
                             </div>
@@ -259,26 +275,25 @@
                                 <button type="button" class="preset-btn" data-preset="bw_eng" data-field="additional">Черно-белый режим</button>
                                 <button type="button" class="preset-btn" data-preset="clean_bg_eng" data-field="additional">Очистить фон</button>
                                 <button type="button" class="preset-btn" data-preset="cnc" data-field="additional">Для ЧПУ</button>
-                                <button type="button" class="preset-btn" data-preset="stone_invert" data-field="additional" data-invert-preview="true">Белый рисунок на чёрном камне</button>
                             </div>
 
                             <!-- 4 fields -->
                             <div class="multi-field-form">
                                 <div class="form-group">
                                     <label for="field-clothing">Одежда</label>
-                                    <input type="text" id="field-clothing" class="form-control" placeholder="Например: деловой костюм" maxlength="200">
+                                    <input type="text" id="field-clothing" class="form-control" placeholder="Например: деловой костюм" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-pose">Поза</label>
-                                    <input type="text" id="field-pose" class="form-control" placeholder="Например: строгая прямая поза" maxlength="200">
+                                    <input type="text" id="field-pose" class="form-control" placeholder="Например: строгая прямая поза" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-background">Фон</label>
-                                    <input type="text" id="field-background" class="form-control" placeholder="Например: нейтральный светло-серый" maxlength="200">
+                                    <input type="text" id="field-background" class="form-control" placeholder="Например: нейтральный светло-серый" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-additional">Дополнительно</label>
-                                    <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="500"></textarea>
+                                    <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="2000"></textarea>
                                 </div>
                             </div>
                         <!-- Generate Button -->
@@ -611,21 +626,6 @@
 
         </main>
 
-        <!-- Mobile Bottom Nav -->
-        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-            <button class="mobile-nav-item" data-page="dashboard">
-                <span class="mobile-nav-icon">🏛</span>
-                <span class="mobile-nav-label">Главная</span>
-            </button>
-            <button class="mobile-nav-item" data-page="generate">
-                <span class="mobile-nav-icon">📷</span>
-                <span class="mobile-nav-label">Обработать</span>
-            </button>
-            <button class="mobile-nav-item" data-page="wallet">
-                <span class="mobile-nav-icon">💳</span>
-                <span class="mobile-nav-label">Тарифы</span>
-            </button>
-        </nav>
 
         <!-- Legal Footer -->
         <footer class="footer" id="footer-legal">
@@ -635,9 +635,7 @@
                     &nbsp;·&nbsp;
                     <a href="https://t.me/AlexAIBotMaster" target="_blank">@AlexAIBotMaster</a>
                 </div>
-                <div class="footer-requisites">
-                    Самозанятый Конищев Александр Иванович · ИНН&nbsp;301610174061
-                </div>
+
                 <div class="footer-links">
                     <a href="/oferta" target="_blank">Оферта</a>
                     <a href="/oferta#vozvrat" target="_blank">Возврат</a>
@@ -657,6 +655,7 @@
     <!-- Auth page (hidden by default, shown when not logged in) -->
     <div id="auth-overlay" class="auth-overlay" style="display:none;">
         <div class="auth-card">
+            <p class="auth-ru-notice">Это российский сервис&nbsp;— Вы можете использовать только почту из зоны «.ru» (КоАП РФ ст.&nbsp;13,55)</p>
             <h2 class="auth-title">Memorial Retouch AI</h2>
             <p class="auth-subtitle">Профессиональная ретушь мемориальных фотографий</p>
 
@@ -679,6 +678,18 @@
                 <button type="submit" class="btn btn-primary btn-large" id="auth-submit">Войти</button>
                 <button type="button" class="btn btn-secondary" id="auth-resend" style="display:none;margin-top:8px;width:100%">Отправить письмо повторно</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Ru-domain warning modal -->
+    <div id="ru-domain-modal-backdrop" class="modal-backdrop"></div>
+    <div class="modal" id="ru-domain-modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Ограничение регистрации</h2>
+            <button class="modal-close" id="ru-domain-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Извините, но на российском сервисе Вы можете использовать только почту из зоны «.ru» (КоАП РФ ст.&nbsp;13,55).</p>
         </div>
     </div>
 

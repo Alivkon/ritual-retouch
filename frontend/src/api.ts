@@ -148,7 +148,7 @@ export async function confirmYookassaPayment(paymentId: string): Promise<{
 }
 
 export async function linkTelegramAccount(): Promise<{ bot_url: string; expires_in_seconds: number }> {
-  return request("/api/auth/telegram-link", { method: "POST" });
+  return request("/api/auth/telegram-link", { method: "POST", body: JSON.stringify({}) });
 }
 
 export function sleep(ms: number): Promise<void> {

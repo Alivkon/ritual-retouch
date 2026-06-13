@@ -55,8 +55,8 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     if (!uploadUrl || !prompt) {
       return reply.code(400).send({ error: "upload_url and prompt are required" });
     }
-    if (prompt.length > 1000) {
-      return reply.code(400).send({ error: "Prompt too long (max 500 chars)" });
+    if (prompt.length > 5000) {
+      return reply.code(400).send({ error: "Запрос слишком длинный (максимум 5000 символов)" });
     }
 
     const dbUser = await getUser(user.user_id);
@@ -74,7 +74,6 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     const localFilePath = path.join(UPLOADS_DIR, filename);
 
     const generationId = await createGeneration(dbUser.user_id, prompt, filename, 0, 0, reservation.userPackageId, 1);
-    await incrementTotalGenerations(dbUser.user_id);
 
     // Run generation asynchronously — client polls /status
     setImmediate(async () => {
@@ -87,6 +86,7 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         fs.writeFileSync(resultPath, resultBytes);
 
         await completeGeneration(generationId, `/uploads/${resultFilename}`);
+        await incrementTotalGenerations(dbUser.user_id);
 
         // Notify admin
         await notifyAdminWebGeneration(

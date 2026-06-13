@@ -1,5 +1,6 @@
 export interface User {
   user_id: number;
+  username: string | null;
   email: string | null;
   balance: number;
   free_generations: number;

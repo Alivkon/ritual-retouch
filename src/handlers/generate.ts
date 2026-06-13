@@ -83,7 +83,6 @@ generateRouter.on("message:photo").filter(
     if (!isAdmin) {
       await deductFreeGeneration(user.id);
     }
-    await incrementTotalGenerations(user.id);
 
     let resultBytes: Buffer;
     try {
@@ -112,6 +111,7 @@ generateRouter.on("message:photo").filter(
       });
       const resultFileId = sent.photo[sent.photo.length - 1]!.file_id;
       await completeGeneration(generationId, resultFileId);
+      await incrementTotalGenerations(user.id);
 
       if (!isAdmin) {
         const usernameStr = user.username ? `@${user.username}` : `id:${user.id}`;

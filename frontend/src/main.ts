@@ -137,6 +137,16 @@ function hideAuthInfo(): void {
   if (resendBtn) resendBtn.style.display = "none";
 }
 
+function showRuDomainModal(): void {
+  document.getElementById("ru-domain-modal-backdrop")?.classList.add("show");
+  document.getElementById("ru-domain-modal")?.classList.add("show");
+}
+
+function hideRuDomainModal(): void {
+  document.getElementById("ru-domain-modal-backdrop")?.classList.remove("show");
+  document.getElementById("ru-domain-modal")?.classList.remove("show");
+}
+
 function setupAuthForm(): void {
   const overlay = document.getElementById("auth-overlay");
   if (!overlay) return;
@@ -145,6 +155,7 @@ function setupAuthForm(): void {
   const tabRegister = document.getElementById("tab-register");
   const submitBtn = document.getElementById("auth-submit") as HTMLButtonElement | null;
   const errorEl = document.getElementById("auth-error");
+  const emailInput = document.getElementById("auth-email") as HTMLInputElement | null;
   let isRegister = false;
   let lastEmail = "";
 
@@ -152,7 +163,7 @@ function setupAuthForm(): void {
     isRegister = false;
     tabLogin.classList.add("active");
     tabRegister?.classList.remove("active");
-    if (submitBtn) submitBtn.textContent = "Войти";
+    if (submitBtn) { submitBtn.textContent = "Войти"; submitBtn.disabled = false; }
     if (errorEl) errorEl.style.display = "none";
     hideAuthInfo();
   });
@@ -161,14 +172,29 @@ function setupAuthForm(): void {
     isRegister = true;
     tabRegister.classList.add("active");
     tabLogin?.classList.remove("active");
-    if (submitBtn) submitBtn.textContent = "Зарегистрироваться";
+    if (submitBtn) {
+      submitBtn.textContent = "Зарегистрироваться";
+      const val = emailInput?.value.trim() ?? "";
+      submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
+    }
     if (errorEl) errorEl.style.display = "none";
     hideAuthInfo();
+  });
+
+  emailInput?.addEventListener("input", () => {
+    if (!isRegister || !submitBtn) return;
+    const val = emailInput.value.trim();
+    submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
   });
 
   document.getElementById("auth-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const email = (document.getElementById("auth-email") as HTMLInputElement).value.trim();
+    if (isRegister && !email.toLowerCase().endsWith(".ru")) {
+      showRuDomainModal();
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
     lastEmail = email;
     const password = (document.getElementById("auth-password") as HTMLInputElement).value;
     void handleAuthSubmit(email, password, isRegister, errorEl, submitBtn);
@@ -178,6 +204,9 @@ function setupAuthForm(): void {
     if (!lastEmail) return;
     void resendVerification(lastEmail).then((r) => showAuthInfo(r.message)).catch(() => undefined);
   });
+
+  document.getElementById("ru-domain-modal-close")?.addEventListener("click", hideRuDomainModal);
+  document.getElementById("ru-domain-modal-backdrop")?.addEventListener("click", hideRuDomainModal);
 }
 
 async function handleAuthSubmit(
@@ -218,14 +247,16 @@ async function handleAuthSubmit(
 // ── Profile menu ───────────────────────────────────────────────────────────
 
 function setupProfileMenu(): void {
-  document.getElementById("profile-menu")?.addEventListener("click", () => {
+  const handleLogout = () => {
     const confirmed = window.confirm("Выйти из аккаунта?");
     if (!confirmed) return;
     void logout().then(() => {
       currentUser = null;
       showAuthOverlay();
     });
-  });
+  };
+  document.getElementById("profile-menu")?.addEventListener("click", handleLogout);
+  document.getElementById("mobile-profile-menu")?.addEventListener("click", handleLogout);
 }
 
 // ── Nav ────────────────────────────────────────────────────────────────────

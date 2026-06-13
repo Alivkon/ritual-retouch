@@ -157,6 +157,7 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     if (!user) return;
     return reply.send({
       user_id: user.user_id,
+      username: user.username ?? null,
       email: (user as unknown as { email?: string }).email ?? null,
       balance: 0,
       free_generations: user.package_generations_remaining,

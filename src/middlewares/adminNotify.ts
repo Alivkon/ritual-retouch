@@ -1,6 +1,32 @@
-import type { NextFunction, Context } from "grammy";
+import type { Api, NextFunction, Context } from "grammy";
 import { getUser } from "../database.js";
 import { ADMIN_ID } from "../config.js";
+
+// Уведомление админу об успешной оплате через ЮKassa (веб-оплаты идут мимо
+// Telegram-апдейтов, поэтому adminNotifyMiddleware их не видит).
+export async function notifyAdminPaymentSuccess(
+  api: Api,
+  params: {
+    userId: number;
+    amount: number;
+    packageTitle: string | null;
+    generationsRemaining: number;
+    paymentId: string;
+  },
+): Promise<void> {
+  const user = await getUser(params.userId).catch(() => null);
+  const name = user?.first_name ?? "";
+  const usernameStr = user?.username ? `@${user.username}` : `id:${params.userId}`;
+
+  const text =
+    `💰 Оплата через ЮKassa\n` +
+    `👤 ${name} ${usernameStr} (${params.userId})\n` +
+    `💳 Сумма: ${params.amount.toFixed(0)}₽\n` +
+    `📦 Пакет: ${params.packageTitle ?? "—"} | Доступно обработок: ${params.generationsRemaining}\n` +
+    `🧾 Платёж: ${params.paymentId}`;
+
+  await api.sendMessage(ADMIN_ID, text).catch(() => undefined);
+}
 
 function isGenerationRequest(ctx: Context): boolean {
   return (

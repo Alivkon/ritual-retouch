@@ -4,7 +4,7 @@ import { KIE_API_KEY } from "../config.js";
 
 const API_URL = "https://api.kie.ai/api/v1/jobs/createTask";
 const TASK_STATUS_URL = "https://api.kie.ai/api/v1/jobs/recordInfo";
-const FILE_UPLOAD_URL = "https://api.kie.ai/api/file-base64-upload";
+const FILE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-base64-upload";
 
 const POLL_INTERVAL_MS = 4000;
 const POLL_MAX_ATTEMPTS = 45;
@@ -54,6 +54,50 @@ interface KieStatusResponse {
   };
 }
 
+const CREATE_TASK_MAX_ATTEMPTS = 3;
+const CREATE_TASK_RETRY_DELAYS_MS = [1000, 2000];
+
+async function createKieTask(
+  headers: Record<string, string>,
+  payload: unknown,
+): Promise<string> {
+  let lastError: Error = new KieError("KIE.ai: задача не создана");
+
+  for (let attempt = 0; attempt < CREATE_TASK_MAX_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      const delay = CREATE_TASK_RETRY_DELAYS_MS[attempt - 1] ?? 2000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    try {
+      const createResp = await fetch(API_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = (await createResp.json()) as KieCreateResponse;
+
+      if (data.code !== 200) {
+        const msg = data.msg ?? data.message ?? JSON.stringify(data);
+        lastError = new KieError(`KIE.ai вернул ошибку ${data.code}: ${msg}`);
+        continue;
+      }
+
+      const taskId = data.data?.taskId;
+      if (!taskId) {
+        lastError = new KieError("KIE.ai не вернул taskId");
+        continue;
+      }
+      return taskId;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new KieError(String(err));
+    }
+  }
+
+  throw lastError;
+}
+
 export async function generateImage(imageUrl: string, prompt: string): Promise<Buffer> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${KIE_API_KEY.trim()}`,
@@ -64,21 +108,7 @@ export async function generateImage(imageUrl: string, prompt: string): Promise<B
     input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
   };
 
-  const createResp = await fetch(API_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(30_000),
-  });
-  const data = (await createResp.json()) as KieCreateResponse;
-
-  if (data.code !== 200) {
-    const msg = data.msg ?? data.message ?? JSON.stringify(data);
-    throw new KieError(`KIE.ai вернул ошибку ${data.code}: ${msg}`);
-  }
-
-  const taskId = data.data?.taskId;
-  if (!taskId) throw new KieError("KIE.ai не вернул taskId");
+  const taskId = await createKieTask(headers, payload);
 
   let resultUrl: string | undefined;
 

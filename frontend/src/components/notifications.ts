@@ -19,7 +19,7 @@ function escapeHtml(text: string): string {
   });
 }
 
-function show(message: string, type: ToastType, duration = 3000): void {
+function show(message: string, type: ToastType, duration = 10000): void {
   const container = document.getElementById("toast-container");
   if (!container) return;
 

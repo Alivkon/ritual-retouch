@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
+import type { Bot } from "grammy";
+import { notifyAdminPaymentSuccess } from "../middlewares/adminNotify.js";
 import {
   getUser,
   creditYookassaPayment,
@@ -58,7 +60,7 @@ async function yookassaFindPayment(paymentId: string): Promise<{
   };
 }
 
-export function registerWebPaymentRoutes(fastify: FastifyInstance): void {
+export function registerWebPaymentRoutes(fastify: FastifyInstance, bot: Bot): void {
 
   // YooKassa — create embedded payment widget token
   fastify.post("/api/web/payment/yookassa", async (req, reply) => {
@@ -130,6 +132,15 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance): void {
     }
 
     const result = await creditYookassaPayment({ userId: user.user_id, amount, yookassaPaymentId: paymentId });
+    if (result.credited) {
+      await notifyAdminPaymentSuccess(bot.api, {
+        userId: user.user_id,
+        amount,
+        packageTitle: result.packageTitle,
+        generationsRemaining: result.generationsRemaining,
+        paymentId,
+      });
+    }
     return reply.send({
       credited: result.credited,
       status: payment.status,

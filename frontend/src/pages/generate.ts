@@ -4,7 +4,11 @@ import { uploadPhoto, startGeneration, getGenerationStatus, sleep, getToken } fr
 
 const ENHANCE_TEXT = `REMASTER AND UPSCALE. Priority: High-fidelity facial reconstruction. Maintain 100% identical facial structure, bone shape, and expression of the person in the source image. CRITICAL: Avoid all skin smoothing, airbrushing, or artificial blurring. Render hyper-realistic epidermal textures, including visible skin pores, fine natural lines, and subtle micro-details. Eyes must be crystal clear with sharp iris details and individual eyelashes. Hair must have distinct, sharp strands. Lighting: Professional studio key light. Technical specs: Shot on 85mm macro lens, f/2.8, ISO 100, 8k resolution, photorealistic masterpiece. `;
 
-const GRANITE_TEXT = `A photo of a high-resolution laser engraving on a polished black granite slab. The texture must be rich and deep, with varying depths of engraving creating an intricate grayscale. The entire image should look like it's carven into stone. Re-render the subject with stippling and detailed hatching lines to create form and shadow, giving it an old-world, historical appearance like a classic etching. Ensure every detail of clothing, features, or elements is sharp and clear. The pose and key features must be preserved, but transformed into a classic engraved style. Single, directional light from the front, mimicking a strong candle flame, illuminating the engraved grooves and casting soft, detailed shadows. Fine-detail engraving, hyperrealistic stippling, etched, grayscale, black granite texture, memorial, commemorative, intricately detailed, no watermarks, classic art, laser etching.`;
+const DETAIL_TEXT = `Профессиональная высококлассная реставрация старой фотографии, абсолютное сохранение черт лица и идентичности человека с оригинала, точное восстановление текстуры оригинальной одежды, естественная колоризация, максимальная резкость, 8k, высокая детализация, реалистичная текстура кожи, качество студийного сканирования. Отрицательный промпт (Negative prompt): галлюцинации нейросети, искаженные черты лица, измененная внешность, современная одежда, мультяшный стиль, артефакты. `;
+
+const BW_RESTORE_TEXT = `Профессиональная высококлассная реставрация старой фотографии, абсолютное сохранение черт лица и идентичности человека с оригинала, точное восстановление текстуры оригинальной одежды, черно-белое фото, максимальная резкость, 8k, высокая детализация, реалистичная текстура кожи, качество студийного сканирования. Отрицательный промпт (Negative prompt): галлюцинации нейросети, искаженные черты лица, измененная внешность, современная одежда, мультяшный стиль, артефакты. `;
+
+const GRANITE_TEXT = `A photo of a high-resolution laser engraving on a polished black granite slab. The texture must be rich and deep, with varying depths of engraving creating an intricate grayscale. The entire image should look like it's carven into stone. Re-render the subject with stippling and detailed hatching lines to create form and shadow, giving it an old-world, historical appearance like a classic etching. Ensure every detail of clothing, features, or elements is sharp and clear. The pose and key features must be preserved, but transformed into a classic engraved style. diffused, non-point light from the front, illuminating the engraved grooves and casting soft. Fine-detail engraving, hyperrealistic stippling, etched, grayscale, black granite texture, memorial, commemorative, intricately detailed, no watermarks, classic art, laser etching.`;
 
 export interface GenerationResult {
   generationId: number;
@@ -26,6 +30,8 @@ let currentOnNeedAuth: ((onSuccess: () => void) => void) | undefined;
 let currentOnGenerationStarted: (() => Promise<void>) | undefined;
 let enhanceActive = false;
 let graniteActive = false;
+let detailActive = false;
+let bwRestoreActive = false;
 
 interface PresetDef {
   field: "clothing" | "pose" | "background" | "additional";
@@ -92,6 +98,8 @@ export function initGenerate(
 
   const enhanceBtn = document.getElementById("enhance-portrait-btn") as HTMLButtonElement | null;
   const graniteBtn = document.getElementById("granite-btn") as HTMLButtonElement | null;
+  const detailBtn = document.getElementById("detail-enhance-btn") as HTMLButtonElement | null;
+  const bwRestoreBtn = document.getElementById("bw-restore-btn") as HTMLButtonElement | null;
 
   enhanceBtn?.addEventListener("click", () => {
     enhanceActive = !enhanceActive;
@@ -102,6 +110,18 @@ export function initGenerate(
   graniteBtn?.addEventListener("click", () => {
     graniteActive = !graniteActive;
     graniteBtn.classList.toggle("active", graniteActive);
+    updateGenerateBtn();
+  });
+
+  detailBtn?.addEventListener("click", () => {
+    detailActive = !detailActive;
+    detailBtn.classList.toggle("active", detailActive);
+    updateGenerateBtn();
+  });
+
+  bwRestoreBtn?.addEventListener("click", () => {
+    bwRestoreActive = !bwRestoreActive;
+    bwRestoreBtn.classList.toggle("active", bwRestoreActive);
     updateGenerateBtn();
   });
 }
@@ -177,17 +197,34 @@ function buildMergedPrompt(): string {
   const base = parts.join("\n");
   return (enhanceActive ? ENHANCE_TEXT : "")
        + (graniteActive ? GRANITE_TEXT : "")
+       + (detailActive ? DETAIL_TEXT : "")
+       + (bwRestoreActive ? BW_RESTORE_TEXT : "")
        + base;
 }
 
 function updateGenerateBtn(): void {
   const btn = document.getElementById("generate-btn") as HTMLButtonElement | null;
   if (!btn) return;
+  const clothing  = (document.getElementById("field-clothing")    as HTMLInputElement    | null)?.value.trim() ?? "";
+  const pose      = (document.getElementById("field-pose")        as HTMLInputElement    | null)?.value.trim() ?? "";
+  const background = (document.getElementById("field-background") as HTMLInputElement    | null)?.value.trim() ?? "";
   const additional = (document.getElementById("field-additional") as HTMLTextAreaElement | null)?.value.trim() ?? "";
-  btn.disabled = !hasPhoto || (additional.length === 0 && !enhanceActive && !graniteActive);
+  const hasText = clothing.length > 0 || pose.length > 0 || background.length > 0 || additional.length > 0;
+  btn.disabled = !hasPhoto || (!hasText && !enhanceActive && !graniteActive && !detailActive && !bwRestoreActive);
 }
 
-async function handleGenerate(navigate: Navigate): Promise<void> {
+// Провал в первые ~30 секунд означает, что KIE.ai отказал сразу (сервер занят) —
+// такой запрос имеет смысл автоматически повторить. Поздний провал чаще связан
+// с самим фото/промптом, повтор сожжёт ещё 3 минуты впустую.
+const EARLY_FAIL_THRESHOLD_MS = 30_000;
+
+class GenerationFailedError extends Error {
+  constructor(public readonly earlyFail: boolean) {
+    super("Generation failed");
+  }
+}
+
+async function handleGenerate(navigate: Navigate, attempt = 0): Promise<void> {
   const photo = uploader.getPhoto();
   if (!photo) { notifications.error("Пожалуйста, загрузите фото"); return; }
 
@@ -198,7 +235,13 @@ async function handleGenerate(navigate: Navigate): Promise<void> {
 
   const prompt = buildMergedPrompt();
 
+  if (prompt.length > 5000) {
+    notifications.error("Количество символов в промте более 5000 символов. Пожалуйста уменьшите длину запроса");
+    return;
+  }
+
   setLoading(true);
+  hideErrorHint();
   showStatus("⏳ Загружаем фото…");
   const startedAt = Date.now();
 
@@ -217,8 +260,23 @@ async function handleGenerate(navigate: Navigate): Promise<void> {
     notifications.success("Фото обработано!");
     navigate("results", { generationId: generation_id, resultUrl, prompt, originalDataUrl: photo.dataUrl, elapsedSeconds });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
-    notifications.error(`Ошибка: ${msg}`);
+    if (err instanceof GenerationFailedError && err.earlyFail && attempt === 0) {
+      showStatus("⏳ Сервер занят, автоматически повторяем попытку…");
+      await sleep(1000);
+      await handleGenerate(navigate, attempt + 1);
+      return;
+    }
+    if (err instanceof GenerationFailedError) {
+      notifications.error(
+        err.earlyFail
+          ? "Сервер сейчас перегружен. Генерация не списана. Пожалуйста, нажмите «Обработать фото» ещё раз через несколько секунд."
+          : "Обработка завершилась с ошибкой, генерация не списана. Попробуйте нажать «Обработать фото» ещё раз.",
+      );
+    } else {
+      const msg = err instanceof Error ? err.message : "Неизвестная ошибка";
+      notifications.error(`Ошибка: ${msg}`);
+    }
+    showErrorHint();
     hideStatus();
   } finally {
     setLoading(false);
@@ -226,11 +284,14 @@ async function handleGenerate(navigate: Navigate): Promise<void> {
 }
 
 async function pollGeneration(id: number): Promise<string> {
+  const pollStartedAt = Date.now();
   for (let i = 0; i < 60; i++) {
     await sleep(3000);
     const { status, result_url } = await getGenerationStatus(id);
     if (status === "completed" && result_url) return result_url;
-    if (status === "failed") throw new Error("Обработка завершилась с ошибкой, деньги возвращены на счёт");
+    if (status === "failed") {
+      throw new GenerationFailedError(Date.now() - pollStartedAt < EARLY_FAIL_THRESHOLD_MS);
+    }
   }
   throw new Error("Превышено время ожидания (3 минуты)");
 }
@@ -251,6 +312,16 @@ function showStatus(text: string): void {
 
 function hideStatus(): void {
   const el = document.getElementById("status-message");
+  if (el) el.style.display = "none";
+}
+
+function showErrorHint(): void {
+  const el = document.getElementById("generation-error-hint");
+  if (el) el.style.display = "block";
+}
+
+function hideErrorHint(): void {
+  const el = document.getElementById("generation-error-hint");
   if (el) el.style.display = "none";
 }
 
