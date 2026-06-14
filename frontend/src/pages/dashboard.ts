@@ -1,5 +1,5 @@
 import type { User, Generation } from "../types.js";
-import { getGenerations } from "../api.js";
+import { getGenerations, linkTelegramAccount } from "../api.js";
 
 function parseDisplayPrompt(raw: string): string {
   const match = raw.match(/Дополнительно:\s*(.+)/s);
@@ -54,15 +54,42 @@ export async function initDashboard(user: User, navigate: Navigate): Promise<voi
   const freeGens = document.getElementById("free-generations");
   const totalGens = document.getElementById("total-generations");
 
-  if (balance) balance.textContent = `${user.balance.toFixed(0)}₽`;
-  if (freeGens) freeGens.textContent = String(user.free_generations);
+  if (balance) balance.textContent = user.package_title ?? "Пакет не выбран";
+  if (freeGens) freeGens.textContent = String(user.package_generations_remaining);
   if (totalGens) totalGens.textContent = String(user.total_generations);
 
-  const showExtra = user.free_generations > 0;
-  freeGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
-  totalGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
+  freeGens?.closest(".info-card")?.toggleAttribute("hidden", false);
+  totalGens?.closest(".info-card")?.toggleAttribute("hidden", false);
   const balanceCard = balance?.closest<HTMLElement>(".info-card");
-  if (balanceCard) balanceCard.style.gridColumn = showExtra ? "" : "1 / -1";
+  if (balanceCard) balanceCard.style.gridColumn = "";
+
+  const linkTgBtn = document.getElementById("link-telegram-btn") as HTMLButtonElement | null;
+  const linkTgResult = document.getElementById("link-telegram-result");
+
+  if (user.username) {
+    if (linkTgBtn) linkTgBtn.style.display = "none";
+    if (linkTgResult) {
+      linkTgResult.innerHTML = `<p style="color:var(--text-secondary);font-size:13px">✅ Telegram <b>@${user.username}</b> привязан к боту <a href="https://t.me/RitualRetouch_bot" target="_blank" style="color:inherit"><b>@RitualRetouch_bot</b></a></p>`;
+      linkTgResult.style.display = "block";
+    }
+  } else {
+    linkTgBtn?.addEventListener("click", () => {
+      if (linkTgBtn.disabled) return;
+      linkTgBtn.disabled = true;
+      void linkTelegramAccount()
+        .then(({ bot_url }) => {
+          if (!linkTgResult) return;
+          linkTgResult.innerHTML =
+            `<a href="${bot_url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Открыть @RitualRetouch_bot</a>` +
+            `<p style="font-size:12px;color:var(--text-secondary);margin:4px 0 0">Ссылка действует 15 минут. Откройте бота и он привяжет ваш Telegram к аккаунту.</p>`;
+          linkTgResult.style.display = "block";
+          linkTgBtn.style.display = "none";
+        })
+        .catch(() => {
+          linkTgBtn.disabled = false;
+        });
+    });
+  }
 
   const howToBtn = document.getElementById("how-to-btn");
   const howToSection = document.getElementById("how-to-section");
@@ -70,10 +97,6 @@ export async function initDashboard(user: User, navigate: Navigate): Promise<voi
     if (!howToSection) return;
     howToSection.style.display = howToSection.style.display === "none" ? "block" : "none";
   });
-
-  // Nav button on the dashboard to go to wallet
-  document.querySelector<HTMLButtonElement>('[data-page="wallet"]')
-    ?.addEventListener("click", () => navigate("wallet"));
 
   try {
     const gens = await getGenerations(0, 6);

@@ -10,6 +10,7 @@ import { registerUploadRoute } from "./web/uploadRoute.js";
 import { registerGenerateRoute } from "./web/generateRoute.js";
 import { registerWebPaymentRoutes } from "./web/paymentRoute.js";
 import { registerTrackingRoutes } from "./web/trackingRoute.js";
+import { notifyAdminPaymentSuccess } from "./middlewares/adminNotify.js";
 import IPCIDR from "ip-cidr";
 import {
   ADMIN_ID,
@@ -20,14 +21,15 @@ import {
   YOOKASSA_SHOP_ID,
 } from "./config.js";
 import {
-  creditManualBalance,
+  addUserGenerations,
   creditYookassaPayment,
+  getAdminAdjustments,
   getAdminGenerations,
   getAdminPayments,
   getAdminStats,
   getAdminUsers,
   getUser,
-  setFreeGenerations,
+  getTelegramIdForAccount,
 } from "./database.js";
 
 const STATIC_DIR = path.resolve(__dirname, "../static");
@@ -108,7 +110,7 @@ async function yookassaCreatePayment(userId: number, amount: number): Promise<{ 
       amount: { value: amount.toFixed(2), currency: "RUB" },
       confirmation: { type: "embedded" },
       capture: true,
-      description: `Пополнение баланса на ${amount}₽`,
+      description: `Пакет обработок на ${amount}₽`,
       metadata: { user_id: String(userId) },
     }),
     signal: AbortSignal.timeout(15_000),
@@ -155,7 +157,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
   registerAuthRoutes(fastify);
   registerUploadRoute(fastify);
   registerGenerateRoute(fastify, bot);
-  registerWebPaymentRoutes(fastify);
+  registerWebPaymentRoutes(fastify, bot);
   registerTrackingRoutes(fastify);
 
   // Frontend SPA (served only if frontend-dist exists)
@@ -219,45 +221,54 @@ export async function startWebServer(bot: Bot): Promise<void> {
     return reply.send(rowsToJson(rows));
   });
 
-  fastify.post("/api/admin/set-free", async (req, reply) => {
+  fastify.get<{ Querystring: { page?: string } }>("/api/admin/generation-adjustments", async (req, reply) => {
     if (!requireAdmin(req.headers["authorization"])) return reply.code(403).send();
-    const body = req.body as { user_id?: unknown; count?: unknown };
-    const userId = parseInt(String(body.user_id ?? ""), 10);
-    const count = parseInt(String(body.count ?? "3"), 10);
-    if (isNaN(userId) || isNaN(count)) return reply.code(400).send({ error: "Invalid params" });
-    await setFreeGenerations(userId, count);
-    return reply.send({ ok: true });
+    const page = Math.max(0, parseInt(req.query.page ?? "0", 10));
+    const rows = await getAdminAdjustments(50, page * 50);
+    return reply.send(rowsToJson(rows));
   });
 
-  fastify.post("/api/admin/credit-balance", async (req, reply) => {
+  fastify.post<{ Params: { userId: string } }>("/api/admin/users/:userId/generations/add", async (req, reply) => {
     if (!requireAdmin(req.headers["authorization"])) return reply.code(403).send();
-    const body = req.body as { user_id?: unknown; amount?: unknown; note?: unknown };
-    const userId = parseInt(String(body.user_id ?? ""), 10);
-    const amount = parseFloat(String(body.amount ?? ""));
-    const note = typeof body.note === "string" ? body.note.trim().slice(0, 200) : "";
+    const userId = parseInt(req.params.userId, 10);
+    const body = req.body as { count?: unknown; reason?: unknown };
+    const count = parseInt(String(body.count ?? ""), 10);
+    const reason = typeof body.reason === "string" ? body.reason.trim().slice(0, 300) : "";
 
-    if (!Number.isFinite(userId) || !Number.isFinite(amount) || amount <= 0) {
-      return reply.code(400).send({ error: "Invalid user_id or amount" });
+    if (!Number.isFinite(userId) || !Number.isInteger(count) || count <= 0 || count > 10000) {
+      return reply.code(400).send({ error: "Invalid user_id or count" });
     }
 
-    const result = await creditManualBalance({
-      userId,
-      amount,
-      ...(note ? { note } : {}),
-    });
-    if (!result) return reply.code(404).send({ error: "User not found" });
-
-    await bot.api
-      .sendMessage(
+    try {
+      const result = await addUserGenerations({
         userId,
-        `✅ Баланс пополнен администратором.\n\n` +
-        `Зачислено: <b>${amount.toFixed(0)}₽</b>\n` +
-        `Ваш баланс: <b>${result.balance.toFixed(0)}₽</b>`,
-        { parse_mode: "HTML" },
-      )
-      .catch(() => undefined);
+        adminId: ADMIN_ID,
+        count,
+        ...(reason ? { reason } : {}),
+      });
+      const telegramUserId = (await getTelegramIdForAccount(userId)) ?? 0;
 
-    return reply.send({ ok: true, balance: result.balance, payment_id: result.paymentId });
+      await bot.api
+        .sendMessage(
+          telegramUserId,
+          `Администратор начислил обработки: <b>${count}</b>\n` +
+          `Доступно обработок: <b>${result.afterRemaining}</b>`,
+          { parse_mode: "HTML" },
+        )
+        .catch(() => undefined);
+
+      return reply.send({
+        ok: true,
+        before_remaining: result.beforeRemaining,
+        after_remaining: result.afterRemaining,
+        generations_total: result.generationsTotal,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "User not found") {
+        return reply.code(404).send({ error: "User not found" });
+      }
+      throw err;
+    }
   });
 
   // YooKassa — create embedded payment
@@ -307,7 +318,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
 
     if (payment.status !== "succeeded") {
       const user = await getUser(userId);
-      return reply.send({ credited: false, status: payment.status, balance: user?.balance ?? 0 });
+      return reply.send({ credited: false, status: payment.status, generations_remaining: user?.package_generations_remaining ?? 0 });
     }
 
     const metadataUserId = parseInt(payment.metadata?.user_id ?? "0", 10);
@@ -322,7 +333,17 @@ export async function startWebServer(bot: Bot): Promise<void> {
     }
 
     const result = await creditYookassaPayment({ userId, amount, yookassaPaymentId: paymentId });
-    return reply.send({ credited: result.credited, status: payment.status, balance: result.balance });
+    const telegramUserId = (await getTelegramIdForAccount(userId)) ?? 0;
+    if (result.credited) {
+      await notifyAdminPaymentSuccess(bot.api, {
+        userId,
+        amount,
+        packageTitle: result.packageTitle,
+        generationsRemaining: result.generationsRemaining,
+        paymentId,
+      });
+    }
+    return reply.send({ credited: result.credited, status: payment.status, generations_remaining: result.generationsRemaining, package_title: result.packageTitle });
   });
 
   // YooKassa webhook
@@ -362,14 +383,25 @@ export async function startWebServer(bot: Bot): Promise<void> {
     }
 
     const result = await creditYookassaPayment({ userId, amount, yookassaPaymentId: paymentId });
+    const telegramUserId = (await getTelegramIdForAccount(userId)) ?? 0;
     if (!result.credited) return reply.code(200).send();
+
+    await notifyAdminPaymentSuccess(bot.api, {
+      userId,
+      amount,
+      packageTitle: result.packageTitle,
+      generationsRemaining: result.generationsRemaining,
+      paymentId,
+    });
+
+    if (!telegramUserId) return reply.code(200).send();
 
     await bot.api
       .sendMessage(
-        userId,
+        telegramUserId,
         `✅ Оплата прошла успешно!\n\n` +
-        `Зачислено: <b>${amount.toFixed(0)}₽</b>\n` +
-        `Ваш баланс: <b>${result.balance.toFixed(0)}₽</b>`,
+        `Пакет: <b>${result.packageTitle ?? "обработок"}</b>\n` +
+        `Доступно обработок: <b>${result.generationsRemaining}</b>`,
         { parse_mode: "HTML" },
       )
       .catch(() => undefined);

@@ -1,9 +1,15 @@
 export interface User {
   user_id: number;
+  username: string | null;
   email: string | null;
   balance: number;
   free_generations: number;
   total_generations: number;
+  has_package: boolean;
+  package_code: string | null;
+  package_title: string | null;
+  package_generations_total: number;
+  package_generations_remaining: number;
 }
 
 export interface Generation {

@@ -85,6 +85,10 @@
         font-size: var(--font-size-base);
     }
 
+    .trust-badge {
+        white-space: normal;
+    }
+
     .modal {
         width: 95%;
         max-height: 95vh;
@@ -96,8 +100,12 @@
         max-width: none;
     }
 
+    .upload-icon {
+        font-size: 1.75rem;
+    }
+
     .upload-zone {
-        padding: var(--space-lg) var(--space-md);
+        padding: var(--space-sm) var(--space-md);
     }
 
     .info-item {
@@ -107,6 +115,52 @@
 
     .payment-history {
         font-size: var(--font-size-xs);
+    }
+}
+
+/* Mobile Generate Page (< 640px) */
+@media (max-width: 639px) {
+    /* Утилиты для текста под тачскрин */
+    .text-mobile { display: block; }
+    .text-desktop { display: none; }
+}
+
+/* Generate page — узкая колонка (< 1200px) */
+@media (max-width: 1199px) {
+    /* Сегментный контрол — вертикальный, без общего фона */
+    .segmented-control {
+        flex-direction: column;
+        gap: var(--space-sm);
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    .segment-btn {
+        white-space: normal;
+        text-align: center;
+        min-height: 44px;
+        font-size: var(--font-size-sm);
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-tertiary);
+    }
+
+    .segment-btn.active {
+        background: var(--gradient-primary);
+        border-color: transparent;
+    }
+
+    /* Кнопки Улучшить / Гранит — на всю ширину */
+    .enhance-row {
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
+
+    .enhance-portrait-btn {
+        width: 100%;
+        text-align: center;
     }
 }
 
@@ -151,6 +205,9 @@
 
 /* Medium Devices (640px - 768px) */
 @media (min-width: 640px) {
+    .text-mobile { display: none; }
+    .text-desktop { display: inline; }
+
     .container {
         padding: var(--space-lg);
     }
@@ -644,6 +701,10 @@ body {
 }
 
 @media (max-width: 639px) {
+    .header-actions {
+        display: none;
+    }
+
     .mobile-top-nav {
         display: flex;
         justify-content: space-around;
@@ -677,7 +738,7 @@ body {
         background: none;
         border: none;
         cursor: pointer;
-        padding: var(--space-xs) var(--space-md);
+        padding: var(--space-xs) var(--space-sm);
         border-radius: var(--radius-md);
         color: var(--medium-gray);
         transition: color var(--transition-base), background-color var(--transition-base);

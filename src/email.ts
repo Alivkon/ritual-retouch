@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, WEBAPP_URL } from "./config.js";
+import { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, WEBAPP_URL, TELEGRAM_BOT_USERNAME } from "./config.js";
 
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
@@ -23,6 +23,9 @@ export async function sendVerificationEmail(email: string, token: string): Promi
                   text-decoration:none;border-radius:8px;font-weight:bold">
           Подтвердить email
         </a>
+        <p style="color:#555;font-size:14px;margin-top:20px">
+          Telegram-бот сервиса: <a href="https://t.me/${TELEGRAM_BOT_USERNAME}">@${TELEGRAM_BOT_USERNAME}</a>
+        </p>
         <p style="color:#888;font-size:13px;margin-top:24px">
           Ссылка действует 24 часа. Если вы не регистрировались — просто проигнорируйте письмо.
         </p>

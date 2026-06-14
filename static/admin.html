@@ -3,113 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin</title>
+<title>Ritual Retouch Admin</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   :root {
-    --bg: var(--tg-theme-bg-color, #1c1c1e);
-    --bg2: var(--tg-theme-secondary-bg-color, #2c2c2e);
-    --text: var(--tg-theme-text-color, #ffffff);
-    --hint: var(--tg-theme-hint-color, #8e8e93);
-    --btn: var(--tg-theme-button-color, #007aff);
+    --bg: var(--tg-theme-bg-color, #17181c);
+    --bg2: var(--tg-theme-secondary-bg-color, #24262d);
+    --line: rgba(142, 142, 147, 0.28);
+    --text: var(--tg-theme-text-color, #f6f7f9);
+    --hint: var(--tg-theme-hint-color, #9da1aa);
+    --btn: var(--tg-theme-button-color, #2f7df6);
     --btn-text: var(--tg-theme-button-text-color, #ffffff);
+    --ok: #30d158;
+    --bad: #ff453a;
+    --warn: #ffd60a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 14px;
     padding: 12px;
   }
-  h1 { font-size: 18px; margin-bottom: 12px; font-weight: 600; }
+  h1 { font-size: 18px; margin-bottom: 12px; font-weight: 650; }
   .stats {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
   }
   .stat-card {
     background: var(--bg2);
-    border-radius: 12px;
-    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 64px;
   }
-  .stat-card .label { color: var(--hint); font-size: 11px; margin-bottom: 4px; }
-  .stat-card .value { font-size: 22px; font-weight: 700; }
-  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .stat-card .label { color: var(--hint); font-size: 11px; margin-bottom: 5px; }
+  .stat-card .value { font-size: 22px; font-weight: 750; line-height: 1.1; }
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
   .tab-btn {
-    flex: 1; padding: 8px 4px; border-radius: 10px;
-    border: none; background: var(--bg2); color: var(--hint);
-    cursor: pointer; font-size: 13px; font-weight: 500;
+    flex: 0 0 auto;
+    min-width: 104px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg2);
+    color: var(--hint);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
   }
-  .tab-btn.active { background: var(--btn); color: var(--btn-text); }
+  .tab-btn.active { background: var(--btn); color: var(--btn-text); border-color: var(--btn); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 680px; }
   th {
-    text-align: left; color: var(--hint); padding: 6px 4px;
-    border-bottom: 1px solid var(--bg2); font-weight: 500;
-    position: sticky; top: 0; background: var(--bg);
+    text-align: left;
+    color: var(--hint);
+    padding: 8px 7px;
+    border-bottom: 1px solid var(--line);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    background: var(--bg2);
   }
-  td { padding: 7px 4px; border-bottom: 1px solid var(--bg2); vertical-align: top; }
-  .ellipsis { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .s-completed { color: #30d158; }
-  .s-failed { color: #ff453a; }
-  .s-processing { color: #ffd60a; }
+  td { padding: 8px 7px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .muted { color: var(--hint); font-size: 11px; }
+  .nowrap { white-space: nowrap; }
+  .ellipsis { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .s-completed { color: var(--ok); }
+  .s-failed { color: var(--bad); }
+  .s-processing { color: var(--warn); }
   .s-pending { color: var(--hint); }
+  .load-more, .action-btn, .admin-form button {
+    border: none;
+    background: var(--btn);
+    color: var(--btn-text);
+    cursor: pointer;
+    font-weight: 650;
+  }
   .load-more {
-    width: 100%; margin-top: 12px; padding: 10px; border-radius: 10px;
-    border: none; background: var(--bg2); color: var(--text);
-    cursor: pointer; font-size: 14px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 14px;
   }
-  .load-more:disabled { color: var(--hint); cursor: default; }
-  .reset-btn {
-    padding: 4px 8px; border-radius: 6px; border: none;
-    background: var(--btn); color: var(--btn-text);
-    cursor: pointer; font-size: 11px; white-space: nowrap;
-  }
-  .reset-btn:disabled { opacity: 0.5; cursor: default; }
+  .load-more:disabled, .action-btn:disabled, .admin-form button:disabled { opacity: 0.55; cursor: default; }
+  .action-btn { padding: 7px 9px; border-radius: 7px; font-size: 12px; white-space: nowrap; }
   .admin-form {
     background: var(--bg2);
-    border-radius: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
     padding: 12px;
     display: grid;
     gap: 10px;
+    max-width: 640px;
   }
-  .admin-form label {
-    display: grid;
-    gap: 5px;
-    color: var(--hint);
-    font-size: 12px;
-  }
+  .admin-form label { display: grid; gap: 5px; color: var(--hint); font-size: 12px; }
   .admin-form input {
     width: 100%;
-    border: 1px solid var(--hint);
-    border-radius: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
     padding: 10px;
     background: var(--bg);
     color: var(--text);
     font-size: 16px;
   }
-  .admin-form button {
-    width: 100%;
-    padding: 11px;
-    border-radius: 10px;
-    border: none;
-    background: var(--btn);
-    color: var(--btn-text);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .admin-form button:disabled { opacity: 0.5; cursor: default; }
+  .admin-form button { width: 100%; padding: 12px; border-radius: 8px; font-size: 14px; }
   .msg { padding: 16px; text-align: center; color: var(--hint); }
-  .err { color: #ff453a; }
-  .ok { color: #30d158; }
+  .err { color: var(--bad); }
+  .ok { color: var(--ok); }
   .admin-form textarea {
     width: 100%;
-    border: 1px solid var(--hint);
-    border-radius: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
     padding: 10px;
     background: var(--bg);
     color: var(--text);
@@ -118,11 +136,7 @@
     resize: vertical;
     font-family: monospace;
   }
-  .stats-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-  }
+  .stats-row { display: flex; gap: 8px; margin-top: 16px; }
   .stats-row .stat-card { flex: 1; }
   .campaign-stats-wrap { margin-top: 20px; }
   .campaign-stats-wrap h3 { font-size: 13px; color: var(--hint); margin-bottom: 10px; font-weight: 500; }
@@ -134,35 +148,52 @@
 <div id="stats" class="msg">Загрузка...</div>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('generations')">Генерации</button>
+  <button class="tab-btn active" onclick="switchTab('users')">Пользователи</button>
+  <button class="tab-btn" onclick="switchTab('generations')">Генерации</button>
   <button class="tab-btn" onclick="switchTab('payments')">Платежи</button>
-  <button class="tab-btn" onclick="switchTab('users')">Пользователи</button>
-  <button class="tab-btn" onclick="switchTab('balance')">Баланс</button>
+  <button class="tab-btn" onclick="switchTab('adjustments')">Начисления</button>
+  <button class="tab-btn" onclick="switchTab('grant')">Добавить</button>
   <button class="tab-btn" onclick="switchTab('mailing')">Рассылка</button>
 </div>
 
-<div id="tab-generations" class="tab-content active">
-  <table>
-    <thead><tr><th>#</th><th>Пользователь</th><th>Промпт</th><th>Статус</th><th>₽</th><th>Дата</th></tr></thead>
-    <tbody id="gen-body"></tbody>
-  </table>
+<div id="tab-users" class="tab-content active">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Пользователь</th><th>Пакет</th><th>Осталось</th><th>Использовано</th><th>Последняя активность</th><th></th></tr></thead>
+      <tbody id="usr-body"></tbody>
+    </table>
+  </div>
+  <button class="load-more" id="usr-more" onclick="loadUsers()">Загрузить ещё</button>
+</div>
+
+<div id="tab-generations" class="tab-content">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Пользователь</th><th>Промпт</th><th>Статус</th><th>Списано</th><th>Дата</th></tr></thead>
+      <tbody id="gen-body"></tbody>
+    </table>
+  </div>
   <button class="load-more" id="gen-more" onclick="loadGen()">Загрузить ещё</button>
 </div>
 
 <div id="tab-payments" class="tab-content">
-  <table>
-    <thead><tr><th>#</th><th>Пользователь</th><th>Сумма</th><th>Дата</th></tr></thead>
-    <tbody id="pay-body"></tbody>
-  </table>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Пользователь</th><th>Пакет</th><th>Сумма</th><th>Провайдер</th><th>Дата</th></tr></thead>
+      <tbody id="pay-body"></tbody>
+    </table>
+  </div>
   <button class="load-more" id="pay-more" onclick="loadPay()">Загрузить ещё</button>
 </div>
 
-<div id="tab-users" class="tab-content">
-  <table>
-    <thead><tr><th>Пользователь</th><th>Баланс</th><th>Бесплатных</th><th>Генераций</th><th></th></tr></thead>
-    <tbody id="usr-body"></tbody>
-  </table>
-  <button class="load-more" id="usr-more" onclick="loadUsers()">Загрузить ещё</button>
+<div id="tab-adjustments" class="tab-content">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>#</th><th>Пользователь</th><th>Начислено</th><th>Было</th><th>Стало</th><th>Причина</th><th>Дата</th></tr></thead>
+      <tbody id="adj-body"></tbody>
+    </table>
+  </div>
+  <button class="load-more" id="adj-more" onclick="loadAdjustments()">Загрузить ещё</button>
 </div>
 
 <div id="tab-mailing" class="tab-content">
@@ -182,9 +213,9 @@
   <div class="campaign-stats-wrap">
     <h3>Статистика кампании</h3>
     <div style="display:flex;gap:8px;align-items:center">
-      <input id="stats-campaign" class="admin-form" style="flex:1;border:1px solid var(--hint);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--text);font-size:14px"
+      <input id="stats-campaign" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--text);font-size:14px"
              placeholder="2026-06-14" autocomplete="off">
-      <button class="reset-btn" style="padding:8px 14px;font-size:13px" onclick="loadCampaignStats()">Загрузить</button>
+      <button class="action-btn" style="padding:9px 14px;font-size:13px" onclick="loadCampaignStats()">Загрузить</button>
     </div>
     <div id="campaign-stats-result" class="stats-row" style="display:none">
       <div class="stat-card"><div class="label">Открытий</div><div class="value" id="cs-opened">—</div></div>
@@ -193,37 +224,37 @@
   </div>
 </div>
 
-<div id="tab-balance" class="tab-content">
-  <form class="admin-form" id="credit-form">
+<div id="tab-grant" class="tab-content">
+  <form class="admin-form" id="grant-form">
     <label>
       User ID
-      <input id="credit-user-id" inputmode="numeric" autocomplete="off" required>
+      <input id="grant-user-id" inputmode="numeric" autocomplete="off" required>
     </label>
     <label>
-      Сумма, ₽
-      <input id="credit-amount" inputmode="decimal" autocomplete="off" required>
+      Количество генераций
+      <input id="grant-count" inputmode="numeric" autocomplete="off" required min="1" max="10000">
     </label>
     <label>
-      Комментарий
-      <input id="credit-note" maxlength="200" autocomplete="off" placeholder="Например: ручное доначисление оплаты">
+      Причина
+      <input id="grant-reason" maxlength="300" autocomplete="off" placeholder="Например: компенсация за техническую ошибку">
     </label>
-    <button id="credit-submit" type="submit">Доначислить</button>
-    <div id="credit-msg" class="msg"></div>
+    <button id="grant-submit" type="submit">Добавить генерации</button>
+    <div id="grant-msg" class="msg"></div>
   </form>
 </div>
 
 <script>
-const tg = window.Telegram.WebApp;
-tg.expand();
-const initData = tg.initData;
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) tg.expand();
+const initData = tg ? tg.initData : '';
 
-let genPage = 0, payPage = 0, usrPage = 0;
-let genDone = false, payDone = false, usrDone = false;
-let usrLoaded = false;
+let genPage = 0, payPage = 0, usrPage = 0, adjPage = 0;
+let genDone = false, payDone = false, usrDone = false, adjDone = false;
+let loaded = { users: false, generations: false, payments: false, adjustments: false };
 
 async function api(path) {
   const r = await fetch(path, { headers: { 'Authorization': 'tma ' + initData } });
-  if (r.status === 403) throw new Error('Нет доступа (403)');
+  if (r.status === 403) throw new Error('Нет доступа. Откройте панель из Telegram-бота администратором.');
   if (!r.ok) throw new Error('Ошибка сервера ' + r.status);
   return r.json();
 }
@@ -238,9 +269,19 @@ async function apiPost(path, body) {
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => ({}));
-  if (r.status === 403) throw new Error('Нет доступа (403)');
+  if (r.status === 403) throw new Error('Нет доступа. Откройте панель из Telegram-бота администратором.');
   if (!r.ok) throw new Error(data.error || 'Ошибка сервера ' + r.status);
   return data;
+}
+
+function esc(s) {
+  if (s === undefined || s === null || s === '') return '—';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function num(v) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? n.toLocaleString('ru-RU') : '0';
 }
 
 function dt(s) {
@@ -251,12 +292,14 @@ function dt(s) {
 }
 
 function userName(r) {
-  return r.username ? '@' + r.username : (r.first_name || String(r.user_id));
+  if (r.email) return r.email;
+  if (r.username) return '@' + r.username;
+  return r.first_name || String(r.user_id);
 }
 
-function esc(s) {
-  if (s === undefined || s === null || s === '') return '—';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function resetList(kind) {
+  if (kind === 'users') { usrPage = 0; usrDone = false; document.getElementById('usr-body').innerHTML = ''; }
+  if (kind === 'adjustments') { adjPage = 0; adjDone = false; document.getElementById('adj-body').innerHTML = ''; }
 }
 
 async function loadStats() {
@@ -264,63 +307,17 @@ async function loadStats() {
     const s = await api('/api/admin/stats');
     document.getElementById('stats').innerHTML = `
       <div class="stats">
-        <div class="stat-card"><div class="label">Пользователей</div><div class="value">${s.total_users}</div></div>
-        <div class="stat-card"><div class="label">Генераций</div><div class="value">${s.total_generations}</div></div>
-        <div class="stat-card"><div class="label">Успешных</div><div class="value">${s.completed_generations}</div></div>
-        <div class="stat-card"><div class="label">Выручка</div><div class="value">${Number(s.total_revenue).toFixed(0)}₽</div></div>
+        <div class="stat-card"><div class="label">Пользователей</div><div class="value">${num(s.total_users)}</div></div>
+        <div class="stat-card"><div class="label">Новых за 7 дней</div><div class="value">${num(s.new_users_7d)}</div></div>
+        <div class="stat-card"><div class="label">Генераций</div><div class="value">${num(s.total_generations)}</div></div>
+        <div class="stat-card"><div class="label">В обработке</div><div class="value">${num(s.processing_generations)}</div></div>
+        <div class="stat-card"><div class="label">Успешных</div><div class="value">${num(s.completed_generations)}</div></div>
+        <div class="stat-card"><div class="label">Ошибок</div><div class="value">${num(s.failed_generations)}</div></div>
+        <div class="stat-card"><div class="label">Доступно генераций</div><div class="value">${num(s.available_generations)}</div></div>
+        <div class="stat-card"><div class="label">Выручка</div><div class="value">${Number(s.total_revenue || 0).toFixed(0)}₽</div></div>
       </div>`;
   } catch(e) {
-    document.getElementById('stats').innerHTML = `<div class="msg err">${e.message}</div>`;
-  }
-}
-
-async function loadGen() {
-  if (genDone) return;
-  const btn = document.getElementById('gen-more');
-  btn.disabled = true; btn.textContent = 'Загрузка...';
-  try {
-    const rows = await api('/api/admin/generations?page=' + genPage);
-    const tbody = document.getElementById('gen-body');
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.id}</td>
-        <td style="white-space:nowrap">${esc(userName(r))}</td>
-        <td class="ellipsis" title="${esc(r.prompt)}">${esc(r.prompt)}</td>
-        <td class="s-${r.status}">${r.status}</td>
-        <td>${r.is_free ? 'free' : Number(r.cost).toFixed(0)}</td>
-        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
-      tbody.appendChild(tr);
-    });
-    if (rows.length < 50) { genDone = true; btn.textContent = 'Всё загружено'; }
-    else { genPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
-  } catch(e) {
-    document.getElementById('gen-body').innerHTML = `<tr><td colspan="6" class="msg err">${e.message}</td></tr>`;
-    btn.textContent = 'Ошибка';
-  }
-}
-
-async function loadPay() {
-  if (payDone) return;
-  const btn = document.getElementById('pay-more');
-  btn.disabled = true; btn.textContent = 'Загрузка...';
-  try {
-    const rows = await api('/api/admin/payments?page=' + payPage);
-    const tbody = document.getElementById('pay-body');
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${r.id}</td>
-        <td style="white-space:nowrap">${esc(userName(r))}</td>
-        <td><b>${Number(r.amount).toFixed(0)}₽</b></td>
-        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
-      tbody.appendChild(tr);
-    });
-    if (rows.length < 50) { payDone = true; btn.textContent = 'Всё загружено'; }
-    else { payPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
-  } catch(e) {
-    document.getElementById('pay-body').innerHTML = `<tr><td colspan="4" class="msg err">${e.message}</td></tr>`;
-    btn.textContent = 'Ошибка';
+    document.getElementById('stats').innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
   }
 }
 
@@ -335,99 +332,161 @@ async function loadUsers() {
       const tr = document.createElement('tr');
       tr.dataset.userId = r.user_id;
       tr.innerHTML = `
-        <td style="white-space:nowrap">${esc(userName(r))}<br><span style="color:var(--hint);font-size:10px">${r.user_id}</span></td>
-        <td><span class="user-balance">${Number(r.balance).toFixed(0)}</span>₽</td>
-        <td class="free-gen-cell"><span class="free-gen">${r.free_generations}</span></td>
-        <td>${r.total_generations}</td>
-        <td>
-          <button class="reset-btn" onclick="prefillCredit(${r.user_id})">+₽</button>
-          <button class="reset-btn" onclick="resetFree(${r.user_id}, this)">↺ до 3</button>
-        </td>`;
+        <td class="nowrap">${esc(userName(r))}<br><span class="muted">${esc(r.user_id)}</span></td>
+        <td>${esc(r.package_title || 'Нет пакета')}</td>
+        <td><b class="remaining">${num(r.package_generations_remaining)}</b><br><span class="muted">из <span class="total">${num(r.package_generations_total)}</span></span></td>
+        <td>${num(r.total_generations)}</td>
+        <td style="white-space:pre;font-size:11px">${dt(r.last_generation_at || r.created_at)}</td>
+        <td><button class="action-btn" onclick="prefillGrant('${esc(r.user_id)}')">Добавить</button></td>`;
       tbody.appendChild(tr);
     });
     if (rows.length < 200) { usrDone = true; btn.textContent = 'Всё загружено'; }
     else { usrPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
   } catch(e) {
-    document.getElementById('usr-body').innerHTML = `<tr><td colspan="5" class="msg err">${e.message}</td></tr>`;
+    document.getElementById('usr-body').innerHTML = `<tr><td colspan="6" class="msg err">${esc(e.message)}</td></tr>`;
     btn.textContent = 'Ошибка';
   }
 }
 
-async function resetFree(userId, btn) {
-  btn.disabled = true;
+async function loadGen() {
+  if (genDone) return;
+  const btn = document.getElementById('gen-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
   try {
-    const r = await fetch('/api/admin/set-free', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'tma ' + initData,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ user_id: userId, count: 3 }),
+    const rows = await api('/api/admin/generations?page=' + genPage);
+    const tbody = document.getElementById('gen-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(r.id)}</td>
+        <td class="nowrap">${esc(userName(r))}<br><span class="muted">${esc(r.user_id)}</span></td>
+        <td class="ellipsis" title="${esc(r.prompt)}">${esc(r.prompt)}</td>
+        <td class="s-${esc(r.status)}">${esc(r.status)}</td>
+        <td>${num(r.generation_cost || 1)}</td>
+        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
+      tbody.appendChild(tr);
     });
-    if (r.ok) {
-      btn.closest('tr').querySelector('.free-gen').textContent = '3';
-      btn.textContent = '✓';
-      setTimeout(() => { btn.textContent = '↺ до 3'; btn.disabled = false; }, 1500);
-      return;
-    }
-  } catch(e) {}
-  btn.textContent = '✗';
-  setTimeout(() => { btn.textContent = '↺ до 3'; btn.disabled = false; }, 1500);
+    if (rows.length < 50) { genDone = true; btn.textContent = 'Всё загружено'; }
+    else { genPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('gen-body').innerHTML = `<tr><td colspan="6" class="msg err">${esc(e.message)}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
 }
 
-function prefillCredit(userId) {
-  switchTab('balance');
-  document.getElementById('credit-user-id').value = String(userId);
-  document.getElementById('credit-amount').focus();
+async function loadPay() {
+  if (payDone) return;
+  const btn = document.getElementById('pay-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const rows = await api('/api/admin/payments?page=' + payPage);
+    const tbody = document.getElementById('pay-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(r.id)}</td>
+        <td class="nowrap">${esc(userName(r))}<br><span class="muted">${esc(r.user_id)}</span></td>
+        <td>${esc(r.package_title || 'Пакет')}</td>
+        <td><b>${Number(r.amount || 0).toFixed(0)}₽</b></td>
+        <td>${esc(r.provider)}<br><span class="muted">${esc(r.status)}</span></td>
+        <td style="white-space:pre;font-size:11px">${dt(r.paid_at || r.created_at)}</td>`;
+      tbody.appendChild(tr);
+    });
+    if (rows.length < 50) { payDone = true; btn.textContent = 'Всё загружено'; }
+    else { payPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('pay-body').innerHTML = `<tr><td colspan="6" class="msg err">${esc(e.message)}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
 }
 
-async function creditBalance(e) {
+async function loadAdjustments() {
+  if (adjDone) return;
+  const btn = document.getElementById('adj-more');
+  btn.disabled = true; btn.textContent = 'Загрузка...';
+  try {
+    const rows = await api('/api/admin/generation-adjustments?page=' + adjPage);
+    const tbody = document.getElementById('adj-body');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${esc(r.id)}</td>
+        <td class="nowrap">${esc(userName(r))}<br><span class="muted">${esc(r.user_id)}</span></td>
+        <td><b>${num(r.delta)}</b></td>
+        <td>${num(r.before_remaining)}</td>
+        <td>${num(r.after_remaining)}</td>
+        <td class="ellipsis" title="${esc(r.reason)}">${esc(r.reason)}</td>
+        <td style="white-space:pre;font-size:11px">${dt(r.created_at)}</td>`;
+      tbody.appendChild(tr);
+    });
+    if (rows.length < 50) { adjDone = true; btn.textContent = 'Всё загружено'; }
+    else { adjPage++; btn.disabled = false; btn.textContent = 'Загрузить ещё'; }
+  } catch(e) {
+    document.getElementById('adj-body').innerHTML = `<tr><td colspan="7" class="msg err">${esc(e.message)}</td></tr>`;
+    btn.textContent = 'Ошибка';
+  }
+}
+
+function prefillGrant(userId) {
+  switchTab('grant');
+  document.getElementById('grant-user-id').value = String(userId);
+  document.getElementById('grant-count').focus();
+}
+
+async function submitGrant(e) {
   e.preventDefault();
-  const btn = document.getElementById('credit-submit');
-  const msg = document.getElementById('credit-msg');
-  const userId = Number(document.getElementById('credit-user-id').value.trim());
-  const amount = Number(document.getElementById('credit-amount').value.trim().replace(',', '.'));
-  const note = document.getElementById('credit-note').value.trim();
+  const btn = document.getElementById('grant-submit');
+  const msg = document.getElementById('grant-msg');
+  const userId = document.getElementById('grant-user-id').value.trim();
+  const count = Number(document.getElementById('grant-count').value.trim());
+  const reason = document.getElementById('grant-reason').value.trim();
 
   msg.className = 'msg';
   msg.textContent = '';
-  if (!userId || !amount || amount <= 0) {
+  if (!userId || !Number.isInteger(count) || count <= 0 || count > 10000) {
     msg.className = 'msg err';
-    msg.textContent = 'Укажите user_id и сумму больше 0.';
+    msg.textContent = 'Укажите user_id и целое количество генераций от 1 до 10000.';
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = 'Доначисляем...';
+  btn.textContent = 'Добавляем...';
   try {
-    const r = await apiPost('/api/admin/credit-balance', { user_id: userId, amount, note });
+    const r = await apiPost('/api/admin/users/' + encodeURIComponent(userId) + '/generations/add', { count, reason });
     msg.className = 'msg ok';
-    msg.textContent = `Готово. Новый баланс: ${Number(r.balance).toFixed(0)}₽`;
+    msg.textContent = `Готово. Было ${num(r.before_remaining)}, стало ${num(r.after_remaining)}.`;
 
-    const row = document.querySelector(`tr[data-user-id="${userId}"]`);
-    const balanceEl = row && row.querySelector('.user-balance');
-    if (balanceEl) balanceEl.textContent = Number(r.balance).toFixed(0);
+    const row = Array.from(document.querySelectorAll('tr[data-user-id]')).find((el) => el.dataset.userId === userId);
+    if (row) {
+      const remaining = row.querySelector('.remaining');
+      const total = row.querySelector('.total');
+      if (remaining) remaining.textContent = num(r.after_remaining);
+      if (total) total.textContent = num(r.generations_total);
+    }
 
-    payPage = 0; payDone = false;
-    document.getElementById('pay-body').innerHTML = '';
-    loadPay();
+    resetList('adjustments');
+    loadAdjustments();
     loadStats();
   } catch(err) {
     msg.className = 'msg err';
     msg.textContent = err.message;
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Доначислить';
+    btn.textContent = 'Добавить генерации';
   }
 }
 
 function switchTab(name) {
-  const names = ['generations', 'payments', 'users', 'balance', 'mailing'];
+  const names = ['users', 'generations', 'payments', 'adjustments', 'grant', 'mailing'];
   document.querySelectorAll('.tab-content').forEach(el =>
     el.classList.toggle('active', el.id === 'tab-' + name));
   document.querySelectorAll('.tab-btn').forEach((b, i) =>
     b.classList.toggle('active', names[i] === name));
-  if (name === 'users' && !usrLoaded) { usrLoaded = true; loadUsers(); }
+
+  if (name === 'users' && !loaded.users) { loaded.users = true; loadUsers(); }
+  if (name === 'generations' && !loaded.generations) { loaded.generations = true; loadGen(); }
+  if (name === 'payments' && !loaded.payments) { loaded.payments = true; loadPay(); }
+  if (name === 'adjustments' && !loaded.adjustments) { loaded.adjustments = true; loadAdjustments(); }
 }
 
 async function sendMailing(e) {
@@ -478,9 +537,9 @@ async function loadCampaignStats() {
 document.getElementById('mailing-campaign').value = new Date().toISOString().slice(0, 10);
 
 loadStats();
-loadGen();
-loadPay();
-document.getElementById('credit-form').addEventListener('submit', creditBalance);
+loaded.users = true;
+loadUsers();
+document.getElementById('grant-form').addEventListener('submit', submitGrant);
 document.getElementById('mailing-form').addEventListener('submit', sendMailing);
 </script>
 </body>

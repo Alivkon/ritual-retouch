@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пополнение баланса</title>
+    <title>Оплата пакета</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://yookassa.ru/checkout-widget/v1/checkout-widget.js"></script>
     <style>
@@ -92,7 +92,7 @@
     </style>
 </head>
 <body>
-    <h1>💳 Пополнение баланса</h1>
+    <h1>💳 Оплата пакета</h1>
     <p class="subtitle">Выберите сумму</p>
     <p style="font-size:13px;color:#e53935;text-align:center;margin-bottom:16px;">⚠️ Если у Вас сейчас включен VPN — отключите его, пожалуйста</p>
 
@@ -199,11 +199,11 @@
                             const data = await confirmRes.json().catch(() => ({}));
                             throw new Error(data.error || `Ошибка сервера: ${confirmRes.status}`);
                         }
-                        payBtn.textContent = "✅ Баланс пополнен!";
+                        payBtn.textContent = "✅ Пакет оплачен!";
                     } catch (e) {
                         console.error("YooKassa confirm error:", e);
                         payBtn.textContent = "✅ Оплата прошла!";
-                        errorMsg.textContent = "Платёж принят. Баланс обновится после обработки уведомления.";
+                        errorMsg.textContent = "Платёж принят. Пакет обновится после обработки уведомления.";
                     }
                     setTimeout(() => tg.close(), 3000);
                 });

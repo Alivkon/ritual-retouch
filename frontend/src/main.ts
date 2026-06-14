@@ -33,16 +33,15 @@ async function refreshUserStats(): Promise<void> {
   const totalGens = document.getElementById("total-generations");
   const walletBalance = document.getElementById("wallet-balance");
 
-  if (balance) balance.textContent = `${stats.balance.toFixed(0)}₽`;
-  if (freeGens) freeGens.textContent = String(stats.free_generations);
+  if (balance) balance.textContent = stats.package_title ?? "Пакет не выбран";
+  if (freeGens) freeGens.textContent = String(stats.package_generations_remaining);
   if (totalGens) totalGens.textContent = String(stats.total_generations);
-  if (walletBalance) walletBalance.textContent = `${stats.balance.toFixed(0)}₽`;
+  if (walletBalance) walletBalance.textContent = stats.package_title ?? "Пакет не выбран";
 
-  const showExtra = stats.free_generations > 0;
-  freeGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
-  totalGens?.closest(".info-card")?.toggleAttribute("hidden", !showExtra);
+  freeGens?.closest(".info-card")?.toggleAttribute("hidden", false);
+  totalGens?.closest(".info-card")?.toggleAttribute("hidden", false);
   const balanceCard = balance?.closest<HTMLElement>(".info-card");
-  if (balanceCard) balanceCard.style.gridColumn = showExtra ? "" : "1 / -1";
+  if (balanceCard) balanceCard.style.gridColumn = "";
 }
 
 function navigate(page: string, data?: GenerationResult): void {
@@ -85,17 +84,22 @@ function navigate(page: string, data?: GenerationResult): void {
 }
 
 function openWalletModal(): void {
-  if (!currentUser) return;
+  if (!currentUser) {
+    showAuthOverlay(() => openWalletModal());
+    return;
+  }
   const backdrop = document.getElementById("wallet-modal-backdrop");
   const modal = document.getElementById("wallet-modal");
   if (backdrop) backdrop.classList.add("show");
-  if (modal) void initWallet(currentUser);
+  if (modal) modal.classList.add("show");
+  void initWallet(currentUser);
 }
 
 function closeWalletModal(): void {
   const backdrop = document.getElementById("wallet-modal-backdrop");
   const modal = document.getElementById("wallet-modal");
   if (backdrop) backdrop.classList.remove("show");
+  if (modal) modal.classList.remove("show");
 }
 
 // ── Auth overlay ───────────────────────────────────────────────────────────
@@ -133,6 +137,16 @@ function hideAuthInfo(): void {
   if (resendBtn) resendBtn.style.display = "none";
 }
 
+function showRuDomainModal(): void {
+  document.getElementById("ru-domain-modal-backdrop")?.classList.add("show");
+  document.getElementById("ru-domain-modal")?.classList.add("show");
+}
+
+function hideRuDomainModal(): void {
+  document.getElementById("ru-domain-modal-backdrop")?.classList.remove("show");
+  document.getElementById("ru-domain-modal")?.classList.remove("show");
+}
+
 function setupAuthForm(): void {
   const overlay = document.getElementById("auth-overlay");
   if (!overlay) return;
@@ -141,6 +155,7 @@ function setupAuthForm(): void {
   const tabRegister = document.getElementById("tab-register");
   const submitBtn = document.getElementById("auth-submit") as HTMLButtonElement | null;
   const errorEl = document.getElementById("auth-error");
+  const emailInput = document.getElementById("auth-email") as HTMLInputElement | null;
   let isRegister = false;
   let lastEmail = "";
 
@@ -148,7 +163,7 @@ function setupAuthForm(): void {
     isRegister = false;
     tabLogin.classList.add("active");
     tabRegister?.classList.remove("active");
-    if (submitBtn) submitBtn.textContent = "Войти";
+    if (submitBtn) { submitBtn.textContent = "Войти"; submitBtn.disabled = false; }
     if (errorEl) errorEl.style.display = "none";
     hideAuthInfo();
   });
@@ -157,14 +172,29 @@ function setupAuthForm(): void {
     isRegister = true;
     tabRegister.classList.add("active");
     tabLogin?.classList.remove("active");
-    if (submitBtn) submitBtn.textContent = "Зарегистрироваться";
+    if (submitBtn) {
+      submitBtn.textContent = "Зарегистрироваться";
+      const val = emailInput?.value.trim() ?? "";
+      submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
+    }
     if (errorEl) errorEl.style.display = "none";
     hideAuthInfo();
+  });
+
+  emailInput?.addEventListener("input", () => {
+    if (!isRegister || !submitBtn) return;
+    const val = emailInput.value.trim();
+    submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
   });
 
   document.getElementById("auth-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const email = (document.getElementById("auth-email") as HTMLInputElement).value.trim();
+    if (isRegister && !email.toLowerCase().endsWith(".ru")) {
+      showRuDomainModal();
+      if (submitBtn) submitBtn.disabled = true;
+      return;
+    }
     lastEmail = email;
     const password = (document.getElementById("auth-password") as HTMLInputElement).value;
     void handleAuthSubmit(email, password, isRegister, errorEl, submitBtn);
@@ -174,6 +204,9 @@ function setupAuthForm(): void {
     if (!lastEmail) return;
     void resendVerification(lastEmail).then((r) => showAuthInfo(r.message)).catch(() => undefined);
   });
+
+  document.getElementById("ru-domain-modal-close")?.addEventListener("click", hideRuDomainModal);
+  document.getElementById("ru-domain-modal-backdrop")?.addEventListener("click", hideRuDomainModal);
 }
 
 async function handleAuthSubmit(
@@ -214,14 +247,16 @@ async function handleAuthSubmit(
 // ── Profile menu ───────────────────────────────────────────────────────────
 
 function setupProfileMenu(): void {
-  document.getElementById("profile-menu")?.addEventListener("click", () => {
+  const handleLogout = () => {
     const confirmed = window.confirm("Выйти из аккаунта?");
     if (!confirmed) return;
     void logout().then(() => {
       currentUser = null;
       showAuthOverlay();
     });
-  });
+  };
+  document.getElementById("profile-menu")?.addEventListener("click", handleLogout);
+  document.getElementById("mobile-profile-menu")?.addEventListener("click", handleLogout);
 }
 
 // ── Nav ────────────────────────────────────────────────────────────────────
@@ -265,7 +300,7 @@ async function main(): Promise<void> {
     window.history.replaceState({}, "", "/");
   }
 
-  // После успешного платежа обновляем баланс
+  // После успешного платежа обновляем пакет
   const paymentSuccess = params.has("payment_success");
   const paymentId = params.get("payment_id");
   if (paymentSuccess) {
@@ -278,39 +313,45 @@ async function main(): Promise<void> {
     setupApp();
     
     if (paymentSuccess && currentUser) {
-      const oldBalance = currentUser.balance;
+      const oldRemaining = currentUser.package_generations_remaining;
       void initWallet(currentUser);
       openWalletModal();
 
       if (paymentId) {
         try {
           const result = await confirmYookassaPayment(paymentId);
-          currentUser = { ...currentUser, balance: result.balance };
+          currentUser = {
+            ...currentUser,
+            has_package: true,
+            package_title: result.package_title,
+            package_generations_remaining: result.package_generations_remaining,
+            free_generations: result.package_generations_remaining,
+          };
           await refreshUserStats();
           void initWallet(currentUser);
-          notifications.success(result.credited ? "Платёж успешно принят! Ваш баланс пополнен." : "Платёж уже был зачислен.");
+          notifications.success(result.credited ? "Пакет успешно оплачен. Обработки зачислены." : "Платёж уже был зачислен.");
           return;
         } catch {
           // Fall through to webhook polling below.
         }
       }
 
-      // Poll in background until webhook arrives and credits the balance (up to 30s)
+      // Poll in background until webhook arrives and credits the package (up to 30s)
       void (async () => {
         for (let i = 0; i < 10; i++) {
           await sleep(3000);
           try {
             const stats = await getBalance();
-            if (stats.balance > oldBalance) {
+            if (stats.package_generations_remaining > oldRemaining) {
               currentUser = { ...currentUser!, ...stats };
               await refreshUserStats();
               void initWallet(currentUser!);
-              notifications.success("Платёж успешно принят! Ваш баланс пополнен.");
+              notifications.success("Пакет успешно оплачен. Обработки зачислены.");
               return;
             }
           } catch { /* non-critical */ }
         }
-        notifications.info("Платёж обрабатывается. Баланс обновится в ближайшее время.");
+        notifications.info("Платёж обрабатывается. Пакет обновится в ближайшее время.");
       })();
     } else {
       navigate("dashboard");

@@ -6,7 +6,7 @@
     <meta name="description" content="Профессиональная ретушь и восстановление мемориальных фотографий. Подготовка портретов для гравировки, фотокерамики и памятников. Бережно, без искажения черт лица.">
     <meta name="keywords" content="ретушь фото памятник, восстановление фотографий, фото для гравировки, фотокерамика, мемориальный портрет, photo restoration memorial, engraving portrait preparation">
     <meta property="og:title" content="Ретушь фотографий для памятников и гравировки | Memorial Retouch AI">
-    <meta property="og:description" content="Профессиональная ретушь мемориальных фотографий. Подготовка под гравировку, фотокерамику и памятники. Результат за несколько минут.">
+    <meta property="og:description" content="Профессиональная ретушь мемориальных фотографий. Подготовка под гравировку, фотокерамику и памятники. Первый результат за несколько минут.">
     <link rel="icon" href="/favicon.ico" sizes="64x64">
     <title>Ретушь фотографий для памятников и гравировки | Memorial Retouch AI</title>
     
@@ -24,13 +24,6 @@
         <!-- Header -->
         <header class="header" id="header" style="display:none">
             <div class="header-content">
-                <div class="logo">
-                    <a href="#" class="logo-link">
-                        <img class="logo-image logo-dark" src="/images/logo_dark_theme.png" alt="Memorial Retouch AI">
-                        <img class="logo-image logo-light-mobile" src="/images/logo_light_theme.png" alt="Memorial Retouch AI">
-                    </a>
-                </div>
-                
                 <nav class="nav-menu" id="nav-menu">
                     <button class="nav-item" data-page="dashboard">
                         <span>🏛 Главная</span>
@@ -42,14 +35,12 @@
                         <span>📂 Примеры работ</span>
                     </button>
                     <button class="nav-item" data-page="wallet">
-                        <span>💳 Тарифы</span>
+                        <span>💳 Оплатить</span>
                     </button>
                 </nav>
 
                 <div class="header-actions">
-                    <button class="btn-icon" id="theme-toggle" title="Переключить тему">
-                      <!--  🌙-->
-                    </button>
+
                     <button class="btn-icon" id="profile-menu" title="Профиль">
                         👤
                     </button>
@@ -71,6 +62,10 @@
                 <span class="mobile-nav-icon">💳</span>
                 <span class="mobile-nav-label">Тарифы</span>
             </button>
+            <button class="mobile-nav-item" id="mobile-profile-menu" title="Профиль">
+                <span class="mobile-nav-icon">👤</span>
+                <span class="mobile-nav-label">Профиль</span>
+            </button>
         </nav>
 
         <!-- Main Content -->
@@ -83,14 +78,14 @@
                     <div class="info-panel">
                         <div class="info-grid">
                             <div class="info-card">
-                                <div class="info-label">Баланс</div>
-                                <div class="info-value balance" id="balance">0₽</div>
+                                <div class="info-label">Пакет</div>
+                                <div class="info-value balance" id="balance">Пакет не выбран</div>
                                 <button class="btn btn-primary btn-sm" data-page="wallet">
                                     Пополнить
                                 </button>
                             </div>
                             <div class="info-card">
-                                <div class="info-label">Свободных обработок</div>
+                                <div class="info-label">Доступно обработок</div>
                                 <div class="info-value free-gens" id="free-generations">3</div>
                                 <div class="info-hint">осталось</div>
                             </div>
@@ -102,12 +97,23 @@
                         </div>
                     </div>
 
+                    <!-- Telegram Link Section -->
+                    <div class="link-telegram-section" id="link-telegram-section" style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn btn-secondary btn-sm" id="link-telegram-btn">
+                            🤖 Связать с Telegram-ботом
+                        </button>
+                        <a href="https://t.me/ritual_retouch_ru" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                            💬 Поддержка в телеграм
+                        </a>
+                        <div id="link-telegram-result" style="display:none;margin-top:8px;width:100%;"></div>
+                    </div>
+
                     <!-- Trust Bar -->
                     <div class="trust-bar">
-                        <div class="trust-badge">🎯 Без изменения черт лица</div>
+                        <div class="trust-badge">🎯 Сохранение портретного сходства</div>
                         <div class="trust-badge">🕊 Бережная реставрация</div>
                         <div class="trust-badge">🏛 Подходит для памятников и фотокерамики</div>
-                        <div class="trust-badge">⏱ Результат за несколько минут</div>
+                        <div class="trust-badge">⏱ Первый результат за несколько минут</div>
                     </div>
 
                     <!-- Action Buttons -->
@@ -133,7 +139,7 @@
                                 <li>Восстанавливает чёткость и детали мемориального портрета</li>
                                 <li>Удаляет царапины, пятна, шум и дефекты</li>
                                 <li>Готовит фото для гравировки или фотокерамики</li>
-                                <li>Не изменяет черты лица — полностью сохраняет сходство</li>
+                                <li>Стремится сохранить портретное сходство и основные черты лица</li>
                             </ul>
 
                             <h4>✅ Примеры задач:</h4>
@@ -152,6 +158,18 @@
                             </ul>
 
                             <p><em>💡 Для сложных задач используйте переключатель режимов на странице обработки.</em></p>
+                        </div>
+                    </div>
+
+                    <div class="how-to-section important-section">
+                        <div class="how-to-card">
+                            <h3>Важно</h3>
+                            <ul>
+                                <li>AI-обработка не заменяет финальную проверку специалистом.</li>
+                                <li>Для гравировки на камне может потребоваться дополнительная техническая подготовка.</li>
+                                <li>Чем лучше исходное фото, тем точнее результат.</li>
+                                <li>Для сложных случаев лучше сгенерировать несколько фотографий одного человека для сверки сходства.</li>
+                            </ul>
                         </div>
                     </div>
 
@@ -176,14 +194,17 @@
                         <!-- Photo Upload Section -->
                         <div class="upload-section">
                             <h2>📸 Загрузите фото</h2>
-                            <p class="section-hint">Загрузите фото с четким изображением вашего лица</p>
+                            <p class="section-hint">Загрузите портрет с хорошо различимым лицом</p>
 
                             <div class="upload-zone" id="upload-zone">
                                 <input type="file" id="photo-input" accept="image/*" hidden>
                                 <div class="upload-placeholder" id="upload-placeholder">
                                     <div class="upload-icon">📤</div>
-                                    <p class="upload-title">Перетащите фото сюда</p>
-                                    <p class="upload-hint">или</p>
+                                    <p class="upload-title">
+                                        <span class="text-desktop">Перетащите фото сюда</span>
+                                        <span class="text-mobile">Нажмите для выбора фото</span>
+                                    </p>
+                                    <p class="upload-hint text-desktop">или</p>
                                     <button type="button" class="btn btn-secondary btn-sm" id="upload-btn">
                                         Выберите файл
                                     </button>
@@ -197,6 +218,10 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <p class="section-hint" id="generation-error-hint" style="display: none;">
+                                Сервер генерации не всегда справляется с первого раза, в случае ошибки просто попробуйте ещё раз.
+                            </p>
                         </div>
 
                         <!-- Profile Mode Section -->
@@ -210,19 +235,25 @@
                                 <button type="button" class="segment-btn" data-role="engraver">Для гравировщика</button>
                             </div>
 
-                            <!-- Sticky preset: always visible -->
-                            <div class="preset-sticky-bar">
-                                <button type="button" class="preset-btn sticky active" data-preset="face_quality" data-field="additional">
-                                    ✦ Улучшить качество лица
+                            <div class="enhance-row">
+                                <button type="button" id="enhance-portrait-btn" class="btn btn-outline enhance-portrait-btn">
+                                    ✨ Улучшить портрет
+                                </button>
+                                <button type="button" id="detail-enhance-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🔍 Улучшить детализацию
+                                </button>
+                                <button type="button" id="bw-restore-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🖤 Чёрно-белое фото
+                                </button>
+                                <button type="button" id="granite-btn" class="btn btn-outline enhance-portrait-btn">
+                                    🪨 На чёрном граните
                                 </button>
                             </div>
 
                             <!-- Designer presets -->
                             <div class="preset-group" id="presets-designer">
-                                <button type="button" class="preset-btn" data-preset="detail" data-field="additional">Повысить детализацию</button>
                                 <button type="button" class="preset-btn" data-preset="denoise" data-field="additional">Удалить шум</button>
                                 <button type="button" class="preset-btn" data-preset="ceramic" data-field="additional">Под фотокерамику</button>
-                                <button type="button" class="preset-btn" data-preset="bw" data-field="additional">Черно-белый портрет</button>
                                 <button type="button" class="preset-btn" data-preset="clean_bg" data-field="additional">Очистить фон</button>
                                 <button type="button" class="preset-btn" data-preset="contrast" data-field="additional">Усилить контраст</button>
                             </div>
@@ -244,30 +275,27 @@
                                 <button type="button" class="preset-btn" data-preset="bw_eng" data-field="additional">Черно-белый режим</button>
                                 <button type="button" class="preset-btn" data-preset="clean_bg_eng" data-field="additional">Очистить фон</button>
                                 <button type="button" class="preset-btn" data-preset="cnc" data-field="additional">Для ЧПУ</button>
-                                <button type="button" class="preset-btn" data-preset="stone_invert" data-field="additional" data-invert-preview="true">Белый рисунок на чёрном камне</button>
                             </div>
 
                             <!-- 4 fields -->
                             <div class="multi-field-form">
                                 <div class="form-group">
                                     <label for="field-clothing">Одежда</label>
-                                    <input type="text" id="field-clothing" class="form-control" placeholder="Например: деловой костюм" maxlength="200">
+                                    <input type="text" id="field-clothing" class="form-control" placeholder="Например: деловой костюм" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-pose">Поза</label>
-                                    <input type="text" id="field-pose" class="form-control" placeholder="Например: строгая прямая поза" maxlength="200">
+                                    <input type="text" id="field-pose" class="form-control" placeholder="Например: строгая прямая поза" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-background">Фон</label>
-                                    <input type="text" id="field-background" class="form-control" placeholder="Например: нейтральный светло-серый" maxlength="200">
+                                    <input type="text" id="field-background" class="form-control" placeholder="Например: нейтральный светло-серый" maxlength="2000">
                                 </div>
                                 <div class="form-group">
                                     <label for="field-additional">Дополнительно</label>
-                                    <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="500"></textarea>
+                                    <textarea id="field-additional" class="textarea" rows="3" placeholder="Пресеты добавляют текст сюда автоматически" maxlength="2000"></textarea>
                                 </div>
                             </div>
-                        </div>
-
                         <!-- Generate Button -->
                         <div class="generate-action">
                             <button id="generate-btn" class="btn btn-large btn-primary" disabled>
@@ -322,6 +350,12 @@
                                 <button class="btn btn-sm btn-secondary" id="grayscale-toggle" style="margin-top: var(--space-sm);">
                                     Ч/Б предпросмотр
                                 </button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning result-warning">
+                            <div class="alert-content">
+                                Перед передачей изображения в производство проверьте сходство лица, возраст, форму глаз, носа, губ и общий характер портрета.
                             </div>
                         </div>
 
@@ -542,8 +576,8 @@
                     <!-- Current Balance -->
                     <div class="wallet-info">
                         <div class="balance-card">
-                            <div class="balance-label">Текущий баланс</div>
-                            <div class="balance-amount" id="wallet-balance">0₽</div>
+                            <div class="balance-label">Текущий пакет</div>
+                            <div class="balance-amount" id="wallet-balance">Пакет не выбран</div>
                         </div>
                     </div>
 
@@ -553,20 +587,20 @@
                         <div class="topup-options" id="topup-options">
                             <button class="topup-card" data-amount="500">
                                 <div class="topup-card-title">На пробу</div>
-                                <div class="topup-card-desc">10 премиум-обработок высокого разрешения</div>
+                                <div class="topup-card-desc">10 обработок с возможностью скачать результат в высоком разрешении</div>
                                 <div class="topup-card-price">500 ₽</div>
                                 <div class="topup-card-per">50 руб. / обработка</div>
                             </button>
                             <button class="topup-card" data-amount="1500">
-                                <div class="topup-card-title">Профессиональный</div>
-                                <div class="topup-card-desc">40 обработок + приоритетная очередь</div>
+                                <div class="topup-card-title">Профи</div>
+                                <div class="topup-card-desc">40 обработок + ускоренная обработка при высокой нагрузке</div>
                                 <div class="topup-card-price">1 500 ₽</div>
                                 <div class="topup-card-per">37 руб. / обработка</div>
                             </button>
                             <button class="topup-card popular" data-amount="3000">
                                 <div class="topup-badge-label">Популярно</div>
                                 <div class="topup-card-title">Мастерская (Сезонный)</div>
-                                <div class="topup-card-desc">100 обработок + VIP поддержка</div>
+                                <div class="topup-card-desc">100 обработок + приоритетная поддержка</div>
                                 <div class="topup-card-price">3 000 ₽</div>
                                 <div class="topup-card-per">30 руб. / обработка</div>
                             </button>
@@ -592,21 +626,6 @@
 
         </main>
 
-        <!-- Mobile Bottom Nav -->
-        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-            <button class="mobile-nav-item" data-page="dashboard">
-                <span class="mobile-nav-icon">🏛</span>
-                <span class="mobile-nav-label">Главная</span>
-            </button>
-            <button class="mobile-nav-item" data-page="generate">
-                <span class="mobile-nav-icon">📷</span>
-                <span class="mobile-nav-label">Обработать</span>
-            </button>
-            <button class="mobile-nav-item" data-page="wallet">
-                <span class="mobile-nav-icon">💳</span>
-                <span class="mobile-nav-label">Тарифы</span>
-            </button>
-        </nav>
 
         <!-- Legal Footer -->
         <footer class="footer" id="footer-legal">
@@ -616,9 +635,7 @@
                     &nbsp;·&nbsp;
                     <a href="https://t.me/AlexAIBotMaster" target="_blank">@AlexAIBotMaster</a>
                 </div>
-                <div class="footer-requisites">
-                    Самозанятый Конищев Александр Иванович · ИНН&nbsp;301610174061
-                </div>
+
                 <div class="footer-links">
                     <a href="/oferta" target="_blank">Оферта</a>
                     <a href="/oferta#vozvrat" target="_blank">Возврат</a>
@@ -638,6 +655,7 @@
     <!-- Auth page (hidden by default, shown when not logged in) -->
     <div id="auth-overlay" class="auth-overlay" style="display:none;">
         <div class="auth-card">
+            <p class="auth-ru-notice">Это российский сервис&nbsp;— Вы можете использовать только почту из зоны «.ru» (КоАП РФ ст.&nbsp;13,55)</p>
             <h2 class="auth-title">Memorial Retouch AI</h2>
             <p class="auth-subtitle">Профессиональная ретушь мемориальных фотографий</p>
 
@@ -660,6 +678,18 @@
                 <button type="submit" class="btn btn-primary btn-large" id="auth-submit">Войти</button>
                 <button type="button" class="btn btn-secondary" id="auth-resend" style="display:none;margin-top:8px;width:100%">Отправить письмо повторно</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Ru-domain warning modal -->
+    <div id="ru-domain-modal-backdrop" class="modal-backdrop"></div>
+    <div class="modal" id="ru-domain-modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Ограничение регистрации</h2>
+            <button class="modal-close" id="ru-domain-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Извините, но на российском сервисе Вы можете использовать только почту из зоны «.ru» (КоАП РФ ст.&nbsp;13,55).</p>
         </div>
     </div>
 

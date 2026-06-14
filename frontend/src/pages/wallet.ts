@@ -21,9 +21,9 @@ let activeWidget: { destroy: () => void; on?: (event: "success" | "fail", cb: ()
 
 export async function updateWalletBalance(user: User): Promise<void> {
   try {
-    const { balance } = await getBalance();
+    const stats = await getBalance();
     const walletBalance = document.getElementById("wallet-balance");
-    if (walletBalance) walletBalance.textContent = `${balance.toFixed(0)}₽`;
+    if (walletBalance) walletBalance.textContent = stats.package_title ?? "Пакет не выбран";
   } catch {
     // non-critical
   }
@@ -34,7 +34,7 @@ export async function initWallet(user: User): Promise<void> {
   if (activeWidget) { activeWidget.destroy(); activeWidget = null; }
 
   const walletBalance = document.getElementById("wallet-balance");
-  if (walletBalance) walletBalance.textContent = `${user.balance.toFixed(0)}₽`;
+  if (walletBalance) walletBalance.textContent = user.package_title ?? "Пакет не выбран";
 
   // Remove all previous topup card listeners
   document.querySelectorAll<HTMLButtonElement>(".topup-card").forEach((btn) => {
@@ -57,8 +57,11 @@ export async function initWallet(user: User): Promise<void> {
   });
 
   try {
-    const { balance } = await getBalance();
-    if (walletBalance) walletBalance.textContent = `${balance.toFixed(0)}₽`;
+    const stats = await getBalance();
+    if (walletBalance) walletBalance.textContent = stats.package_title ?? "Пакет не выбран";
+    if (stats.has_package) {
+      notifications.info(`Текущий пакет: ${stats.package_title}. Осталось обработок: ${stats.package_generations_remaining}. Можно докупить пакет, генерации прибавятся к текущему остатку.`);
+    }
   } catch {
     // non-critical
   }
@@ -79,7 +82,7 @@ async function loadPaymentHistory(): Promise<void> {
         day: "2-digit", month: "2-digit", year: "numeric",
       });
       return `<div class="history-item">
-        <span class="history-amount">+${p.amount.toFixed(0)}₽</span>
+        <span class="history-amount">${p.package_title ?? "Пакет"} — ${p.amount.toFixed(0)}₽</span>
         <span class="history-date">${date}</span>
       </div>`;
     }).join("");
@@ -147,11 +150,13 @@ async function handleYookassa(amount: number): Promise<void> {
         const result = await confirmYookassaPayment(payment_id);
         const walletBalance = document.getElementById("wallet-balance");
         const headerBalance = document.getElementById("balance");
-        if (walletBalance) walletBalance.textContent = `${result.balance.toFixed(0)}₽`;
-        if (headerBalance) headerBalance.textContent = `${result.balance.toFixed(0)}₽`;
-        notifications.success(result.credited ? "Платёж успешно принят! Ваш баланс пополнен." : "Платёж уже был зачислен.");
+        if (walletBalance) walletBalance.textContent = result.package_title ?? "Пакет оплачен";
+        if (headerBalance) headerBalance.textContent = result.package_title ?? "Пакет оплачен";
+        const remaining = document.getElementById("free-generations");
+        if (remaining) remaining.textContent = String(result.package_generations_remaining);
+        notifications.success(result.credited ? "Пакет успешно оплачен. Обработки зачислены." : "Платёж уже был зачислен.");
       } catch {
-        notifications.info("Платёж обрабатывается. Баланс обновится в ближайшее время.");
+        notifications.info("Платёж обрабатывается. Пакет обновится в ближайшее время.");
       }
     })();
   });

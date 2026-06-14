@@ -1,6 +1,32 @@
-import type { NextFunction, Context } from "grammy";
+import type { Api, NextFunction, Context } from "grammy";
 import { getUser } from "../database.js";
 import { ADMIN_ID } from "../config.js";
+
+// Уведомление админу об успешной оплате через ЮKassa (веб-оплаты идут мимо
+// Telegram-апдейтов, поэтому adminNotifyMiddleware их не видит).
+export async function notifyAdminPaymentSuccess(
+  api: Api,
+  params: {
+    userId: number;
+    amount: number;
+    packageTitle: string | null;
+    generationsRemaining: number;
+    paymentId: string;
+  },
+): Promise<void> {
+  const user = await getUser(params.userId).catch(() => null);
+  const name = user?.first_name ?? "";
+  const usernameStr = user?.username ? `@${user.username}` : `id:${params.userId}`;
+
+  const text =
+    `💰 Оплата через ЮKassa\n` +
+    `👤 ${name} ${usernameStr} (${params.userId})\n` +
+    `💳 Сумма: ${params.amount.toFixed(0)}₽\n` +
+    `📦 Пакет: ${params.packageTitle ?? "—"} | Доступно обработок: ${params.generationsRemaining}\n` +
+    `🧾 Платёж: ${params.paymentId}`;
+
+  await api.sendMessage(ADMIN_ID, text).catch(() => undefined);
+}
 
 function isGenerationRequest(ctx: Context): boolean {
   return (
@@ -17,7 +43,7 @@ async function notify(ctx: Context): Promise<void> {
   const userData = await getUser(from.id);
   const name = from.first_name ?? "";
   const usernameStr = from.username ? `@${from.username}` : `id:${from.id}`;
-  const balanceStr = userData ? `${userData.balance.toFixed(0)}₽` : "—";
+  const packageStr = userData ? (userData.package_title ?? "—") : "—";
   const gensStr = userData ? String(userData.total_generations) : "—";
   const freeStr = userData ? String(userData.free_generations) : "—";
 
@@ -48,7 +74,7 @@ async function notify(ctx: Context): Promise<void> {
     } else if (cbData === "topup") {
       action = "открыл меню пополнения";
     } else if (cbData === "balance") {
-      action = "запросил баланс";
+      action = "запросил пакет";
     } else if (cbData === "generate") {
       action = "нажал «Сгенерировать»";
     } else if (cbData === "back_to_menu") {
@@ -63,7 +89,7 @@ async function notify(ctx: Context): Promise<void> {
   const text =
     `👤 ${name} ${usernameStr} (${from.id})\n` +
     `📝 Действие: ${action}\n` +
-    `💰 Баланс: ${balanceStr} | Генераций: ${gensStr} | Бесплатных: ${freeStr}`;
+    `📦 Пакет: ${packageStr} | Генераций: ${gensStr} | Доступно: ${freeStr}`;
 
   await ctx.api.sendMessage(ADMIN_ID, text);
 
