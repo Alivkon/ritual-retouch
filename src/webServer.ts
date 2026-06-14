@@ -9,6 +9,7 @@ import { registerAuthRoutes } from "./web/auth.js";
 import { registerUploadRoute } from "./web/uploadRoute.js";
 import { registerGenerateRoute } from "./web/generateRoute.js";
 import { registerWebPaymentRoutes } from "./web/paymentRoute.js";
+import { registerTrackingRoutes } from "./web/trackingRoute.js";
 import IPCIDR from "ip-cidr";
 import {
   ADMIN_ID,
@@ -155,6 +156,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
   registerUploadRoute(fastify);
   registerGenerateRoute(fastify, bot);
   registerWebPaymentRoutes(fastify);
+  registerTrackingRoutes(fastify);
 
   // Frontend SPA (served only if frontend-dist exists)
   const fs = await import("node:fs");
