@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgre_imagetransformer
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: imagetransformer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: imagetransformer
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - imgtransform_net
+
+  bot:
+    build: .
+    image: ritual_retouch_bot
+    container_name: ritual_retouch
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://imagetransformer:${POSTGRES_PASSWORD}@postgre_imagetransformer/imagetransformer
+      WEBAPP_URL: http://localhost:8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - imgtransform_net
+    depends_on:
+      - postgres
+
+volumes:
+  pg_data:
+  uploads_data:
+
+networks:
+  imgtransform_net:
+    name: imgtransform_net

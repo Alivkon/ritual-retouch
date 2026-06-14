@@ -106,6 +106,34 @@ export async function initDb(): Promise<void> {
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+
+    // Email campaign tracking
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS email_recipients (
+        md_key  VARCHAR(32) PRIMARY KEY,
+        email   VARCHAR(255) UNIQUE NOT NULL
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS email_opens (
+        id         BIGSERIAL PRIMARY KEY,
+        campaign   VARCHAR(50),
+        md_key     VARCHAR(32),
+        ip         VARCHAR(45),
+        user_agent TEXT,
+        opened_at  TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS email_clicks (
+        id         BIGSERIAL PRIMARY KEY,
+        campaign   VARCHAR(50),
+        md_key     VARCHAR(32),
+        ip         VARCHAR(45),
+        user_agent TEXT,
+        clicked_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
   } finally {
     client.release();
   }
@@ -511,4 +539,71 @@ export async function getGenerationById(
     [id, userId],
   );
   return result.rows[0] ?? null;
+}
+
+// ─── Email campaign tracking ──────────────────────────────────────────────────
+
+export async function addEmailRecipient(email: string): Promise<string> {
+  const mdKey = crypto.createHash("md5").update(email.toLowerCase()).digest("hex");
+  await pool.query(
+    `INSERT INTO email_recipients (md_key, email) VALUES ($1, $2)
+     ON CONFLICT (md_key) DO NOTHING`,
+    [mdKey, email.toLowerCase()],
+  );
+  return mdKey;
+}
+
+export async function logEmailOpen(
+  campaign: string,
+  mdKey: string,
+  ip: string,
+  userAgent: string,
+): Promise<void> {
+  await pool.query(
+    "INSERT INTO email_opens (campaign, md_key, ip, user_agent) VALUES ($1, $2, $3, $4)",
+    [campaign, mdKey, ip, userAgent],
+  );
+}
+
+export async function logEmailClick(
+  campaign: string,
+  mdKey: string,
+  ip: string,
+  userAgent: string,
+): Promise<void> {
+  await pool.query(
+    "INSERT INTO email_clicks (campaign, md_key, ip, user_agent) VALUES ($1, $2, $3, $4)",
+    [campaign, mdKey, ip, userAgent],
+  );
+}
+
+export async function getCampaignStats(campaign: string): Promise<{
+  sent: number;
+  opened: number;
+  clicked: number;
+}> {
+  const result = await pool.query<{ sent: number; opened: number; clicked: number }>(`
+    SELECT
+      (SELECT COUNT(DISTINCT o.md_key)
+       FROM email_opens o
+       JOIN email_recipients r ON r.md_key = o.md_key
+       WHERE o.campaign = $1)::int AS opened,
+      (SELECT COUNT(DISTINCT c.md_key)
+       FROM email_clicks c
+       JOIN email_recipients r ON r.md_key = c.md_key
+       WHERE c.campaign = $1)::int AS clicked,
+      (SELECT COUNT(DISTINCT md_key)
+       FROM email_opens WHERE campaign = $1)::int +
+      (SELECT COUNT(DISTINCT md_key)
+       FROM email_clicks WHERE campaign = $1)::int AS sent
+  `, [campaign]);
+  return result.rows[0] ?? { sent: 0, opened: 0, clicked: 0 };
+}
+
+export async function getCampaignSentCount(campaign: string): Promise<number> {
+  const result = await pool.query<{ cnt: number }>(
+    `SELECT COUNT(DISTINCT md_key)::int AS cnt FROM email_opens WHERE campaign = $1`,
+    [campaign],
+  );
+  return result.rows[0]?.cnt ?? 0;
 }

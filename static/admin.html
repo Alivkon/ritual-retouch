@@ -106,6 +106,26 @@
   .msg { padding: 16px; text-align: center; color: var(--hint); }
   .err { color: #ff453a; }
   .ok { color: #30d158; }
+  .admin-form textarea {
+    width: 100%;
+    border: 1px solid var(--hint);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 140px;
+    resize: vertical;
+    font-family: monospace;
+  }
+  .stats-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .stats-row .stat-card { flex: 1; }
+  .campaign-stats-wrap { margin-top: 20px; }
+  .campaign-stats-wrap h3 { font-size: 13px; color: var(--hint); margin-bottom: 10px; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -118,6 +138,7 @@
   <button class="tab-btn" onclick="switchTab('payments')">Платежи</button>
   <button class="tab-btn" onclick="switchTab('users')">Пользователи</button>
   <button class="tab-btn" onclick="switchTab('balance')">Баланс</button>
+  <button class="tab-btn" onclick="switchTab('mailing')">Рассылка</button>
 </div>
 
 <div id="tab-generations" class="tab-content active">
@@ -142,6 +163,34 @@
     <tbody id="usr-body"></tbody>
   </table>
   <button class="load-more" id="usr-more" onclick="loadUsers()">Загрузить ещё</button>
+</div>
+
+<div id="tab-mailing" class="tab-content">
+  <form class="admin-form" id="mailing-form">
+    <label>
+      Кампания (дата или название)
+      <input id="mailing-campaign" autocomplete="off" placeholder="2026-06-14" required>
+    </label>
+    <label>
+      Email-адреса (по одному на строку)
+      <textarea id="mailing-emails" placeholder="agency1@mail.ru&#10;agency2@gmail.com&#10;..."></textarea>
+    </label>
+    <button id="mailing-submit" type="submit">Отправить рассылку</button>
+    <div id="mailing-msg" class="msg"></div>
+  </form>
+
+  <div class="campaign-stats-wrap">
+    <h3>Статистика кампании</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input id="stats-campaign" class="admin-form" style="flex:1;border:1px solid var(--hint);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--text);font-size:14px"
+             placeholder="2026-06-14" autocomplete="off">
+      <button class="reset-btn" style="padding:8px 14px;font-size:13px" onclick="loadCampaignStats()">Загрузить</button>
+    </div>
+    <div id="campaign-stats-result" class="stats-row" style="display:none">
+      <div class="stat-card"><div class="label">Открытий</div><div class="value" id="cs-opened">—</div></div>
+      <div class="stat-card"><div class="label">Кликов</div><div class="value" id="cs-clicked">—</div></div>
+    </div>
+  </div>
 </div>
 
 <div id="tab-balance" class="tab-content">
@@ -373,7 +422,7 @@ async function creditBalance(e) {
 }
 
 function switchTab(name) {
-  const names = ['generations', 'payments', 'users', 'balance'];
+  const names = ['generations', 'payments', 'users', 'balance', 'mailing'];
   document.querySelectorAll('.tab-content').forEach(el =>
     el.classList.toggle('active', el.id === 'tab-' + name));
   document.querySelectorAll('.tab-btn').forEach((b, i) =>
@@ -381,10 +430,58 @@ function switchTab(name) {
   if (name === 'users' && !usrLoaded) { usrLoaded = true; loadUsers(); }
 }
 
+async function sendMailing(e) {
+  e.preventDefault();
+  const btn = document.getElementById('mailing-submit');
+  const msg = document.getElementById('mailing-msg');
+  const campaign = document.getElementById('mailing-campaign').value.trim();
+  const emailsRaw = document.getElementById('mailing-emails').value.trim();
+  const emails = emailsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+
+  msg.className = 'msg'; msg.textContent = '';
+  if (!campaign || emails.length === 0) {
+    msg.className = 'msg err';
+    msg.textContent = 'Укажите кампанию и список адресов.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = `Отправляем ${emails.length} писем...`;
+  try {
+    const r = await apiPost('/api/admin/send-campaign', { campaign, emails });
+    msg.className = 'msg ok';
+    msg.textContent = `Отправлено: ${r.sent}, ошибок: ${r.failed}`;
+    document.getElementById('stats-campaign').value = campaign;
+  } catch(err) {
+    msg.className = 'msg err';
+    msg.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Отправить рассылку';
+  }
+}
+
+async function loadCampaignStats() {
+  const campaign = document.getElementById('stats-campaign').value.trim();
+  if (!campaign) return;
+  try {
+    const s = await api('/api/admin/campaign-stats?campaign=' + encodeURIComponent(campaign));
+    document.getElementById('cs-opened').textContent = s.opened;
+    document.getElementById('cs-clicked').textContent = s.clicked;
+    document.getElementById('campaign-stats-result').style.display = 'flex';
+  } catch(err) {
+    alert(err.message);
+  }
+}
+
+// Set default campaign date
+document.getElementById('mailing-campaign').value = new Date().toISOString().slice(0, 10);
+
 loadStats();
 loadGen();
 loadPay();
 document.getElementById('credit-form').addEventListener('submit', creditBalance);
+document.getElementById('mailing-form').addEventListener('submit', sendMailing);
 </script>
 </body>
 </html>
