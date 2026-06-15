@@ -26,6 +26,7 @@ export interface Generation {
 
 export interface GenerationStatus {
   status: "processing" | "completed" | "failed";
+  source_url: string | null;
   result_url: string | null;
 }
 

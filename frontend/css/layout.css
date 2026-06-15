@@ -209,6 +209,10 @@
     margin-top: var(--space-lg);
 }
 
+.gallery-item--clickable {
+    cursor: pointer;
+}
+
 .results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -567,6 +571,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    min-height: 360px;
 }
 
 .result-title {
@@ -580,8 +585,11 @@
 .result-image {
     width: 100%;
     height: auto;
-    object-fit: cover;
+    max-height: 640px;
+    object-fit: contain;
     display: block;
+    flex: 1;
+    background-color: var(--white);
 }
 
 .result-image-wrapper {

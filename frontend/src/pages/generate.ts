@@ -8,11 +8,14 @@ const DETAIL_TEXT = `Профессиональная высококлассна
 
 const BW_RESTORE_TEXT = `Профессиональная высококлассная реставрация старой фотографии, абсолютное сохранение черт лица и идентичности человека с оригинала, точное восстановление текстуры оригинальной одежды, черно-белое фото, максимальная резкость, 8k, высокая детализация, реалистичная текстура кожи, качество студийного сканирования. Отрицательный промпт (Negative prompt): галлюцинации нейросети, искаженные черты лица, измененная внешность, современная одежда, мультяшный стиль, артефакты. `;
 
-const GRANITE_TEXT = `A photo of a high-resolution laser engraving on a polished black granite slab. The texture must be rich and deep, with varying depths of engraving creating an intricate grayscale. The entire image should look like it's carven into stone. Re-render the subject with stippling and detailed hatching lines to create form and shadow, giving it an old-world, historical appearance like a classic etching. Ensure every detail of clothing, features, or elements is sharp and clear. The pose and key features must be preserved, but transformed into a classic engraved style. diffused, non-point light from the front, illuminating the engraved grooves and casting soft. Fine-detail engraving, hyperrealistic stippling, etched, grayscale, black granite texture, memorial, commemorative, intricately detailed, no watermarks, classic art, laser etching.`;
+const GRANITE_TEXT = `A photo of a high-resolution laser engraving on a polished black slab. The texture must be rich and deep, with varying depths of engraving creating an intricate grayscale. The entire image should look like it's carven into stone. Re-render the subject with stippling and detailed hatching lines to create form and shadow, like a classic etching. Ensure every detail of clothing, features, or elements is sharp and clear. The pose and key features must be preserved. Diffused, non-point light from the front, illuminating the engraved grooves and casting soft. Fine-detail engraving, hyperrealistic stippling, etched, grayscale, the texture of absolutely black granite without light spots, memorial, commemorative, intricately detailed, no watermarks, classic art, laser etching.`;
+
+const ENGRAVE_MACHINE_TEXT = `Основное техническое требование: Это изображение должно служить безупречным, лишенным шумов цифровым чертежом, готовым для прямого импорта в ЧПУ или лазерный гравировальный станок. Весь фон должен быть абсолютно чистой, глубокой, чисто-черной пустотой (определяемой как чистый RGB 0,0,0 или цифровой ноль). На фоне не должно быть НИКАКОЙ видимой текстуры, pitting'а, шума, зернистости или световых пятен. Базовый стиль: Отрендерено как высокоточная матрица четких белых точек (стипплинг) и чистых выгравированных векторных линий, скрупулезно определяющих субъект. Это не фото, а прямая карта точек гравировки на черном поле, оптимизированная для чтения станком. Субъект: Мастерски выполненная, чистая векторная репродукция конкретного портрета (с сохранением всех черт лица). Субъект должен быть тщательно рендерирован с использованием только точного, изолированного белого стипплинга и чистых выгравированных векторных линий для передачи формы и теней, что дает вид гравировки высокого разрешения. Все элементы должны быть бритвенно-четкими. Детализация и Строгая Изоляция: Каждая деталь (волосы, глаза, губы, одежда) должна быть определена высокоплотной матрицей точек и чистыми векторными линиями. Субъект должен быть 100% строго изолирован от фона без единого ложного пикселя на пустом поле. Волосы: Детальная матрица точек и чистые векторные линии, определяющие пряди, поток и объем. Фон: СТРОГО, АБСОЛЮТНО БЕСТЭКСТУРНАЯ, ГЛУБОКАЯ ЧИСТАЯ ЧЕРНАЯ ПУСТОТА (RGB 0,0,0). Глубокая, безупречная черная пустота с нулевым количеством данных (точек) за пределами субъекта. Переходы: Переходы теней достигаются только за счет плотности точек на чисто-черном поле, обеспечивая чистую командную структуру для станка. Освещение: Свет, оптимизированный исключительно для того, чтобы заставить точки гравировки сиять с максимальным контрастом и чистотой на глубоком черном фоне. Это визуализация данных для станка. Композиция и Использование: Центрированная, сфокусированная композиция, оптимизированная для ввода в векторный станок. Весь стипплинг должен быть чистым, без случайного рассеивания. Весь файл должен быть оптимизирован для прямого парсинга команд высокоточным гравировальным станком. Дополнительные технические ключевые слова: Vector-ready, CNC engraving file, laser etching data-map, precision point matrix, pure void-black field, isolated data-points, hyper-precise stippling, clean etched lines, commemorative, high-resolution vector source, digital blueprint, zero background bleed.`;
 
 export interface GenerationResult {
   generationId: number;
   resultUrl: string;
+  sourceUrl?: string;
   prompt: string;
   originalDataUrl: string;
   elapsedSeconds: number;
@@ -30,6 +33,7 @@ let currentOnNeedAuth: ((onSuccess: () => void) => void) | undefined;
 let currentOnGenerationStarted: (() => Promise<void>) | undefined;
 let enhanceActive = false;
 let graniteActive = false;
+let engraveActive = false;
 let detailActive = false;
 let bwRestoreActive = false;
 
@@ -53,7 +57,6 @@ const PRESET_DEFINITIONS: Record<string, PresetDef> = {
   bw_photo:      { field: "additional", text: "black and white memorial portrait, черно-белое фото" },
   monument:      { field: "additional", text: "suitable for memorial monument portrait, для памятника" },
   ceramic_mgr:   { field: "additional", text: "prepare for photo-ceramic, для фотокерамики" },
-  engrave:       { field: "additional", text: "prepare for laser engraving, high contrast, подготовить под гравировку" },
   contrast_eng:  { field: "additional", text: "maximum contrast for engraving, усилить контраст" },
   bw_eng:        { field: "additional", text: "strict black and white mode for engraving" },
   clean_bg_eng:  { field: "additional", text: "remove all background for clean engraving silhouette" },
@@ -98,6 +101,7 @@ export function initGenerate(
 
   const enhanceBtn = document.getElementById("enhance-portrait-btn") as HTMLButtonElement | null;
   const graniteBtn = document.getElementById("granite-btn") as HTMLButtonElement | null;
+  const engraveBtn = document.getElementById("engrave-machine-btn") as HTMLButtonElement | null;
   const detailBtn = document.getElementById("detail-enhance-btn") as HTMLButtonElement | null;
   const bwRestoreBtn = document.getElementById("bw-restore-btn") as HTMLButtonElement | null;
 
@@ -110,6 +114,12 @@ export function initGenerate(
   graniteBtn?.addEventListener("click", () => {
     graniteActive = !graniteActive;
     graniteBtn.classList.toggle("active", graniteActive);
+    updateGenerateBtn();
+  });
+
+  engraveBtn?.addEventListener("click", () => {
+    engraveActive = !engraveActive;
+    engraveBtn.classList.toggle("active", engraveActive);
     updateGenerateBtn();
   });
 
@@ -140,7 +150,18 @@ function switchRole(role: RoleMode): void {
     const el = document.getElementById(id);
     if (el) el.style.display = r === role ? "" : "none";
   }
-  if (role !== "engraver") disableInvertPreview();
+  const engraverRow = document.getElementById("engraver-enhance-row");
+  if (engraverRow) engraverRow.style.display = role === "engraver" ? "" : "none";
+
+  if (role !== "engraver") {
+    disableInvertPreview();
+    if (engraveActive) {
+      engraveActive = false;
+      const engraveBtn = document.getElementById("engrave-machine-btn") as HTMLButtonElement | null;
+      engraveBtn?.classList.remove("active");
+      updateGenerateBtn();
+    }
+  }
 }
 
 function handlePresetClick(btn: HTMLButtonElement): void {
@@ -197,6 +218,7 @@ function buildMergedPrompt(): string {
   const base = parts.join("\n");
   return (enhanceActive ? ENHANCE_TEXT : "")
        + (graniteActive ? GRANITE_TEXT : "")
+       + (engraveActive ? ENGRAVE_MACHINE_TEXT : "")
        + (detailActive ? DETAIL_TEXT : "")
        + (bwRestoreActive ? BW_RESTORE_TEXT : "")
        + base;
@@ -210,7 +232,7 @@ function updateGenerateBtn(): void {
   const background = (document.getElementById("field-background") as HTMLInputElement    | null)?.value.trim() ?? "";
   const additional = (document.getElementById("field-additional") as HTMLTextAreaElement | null)?.value.trim() ?? "";
   const hasText = clothing.length > 0 || pose.length > 0 || background.length > 0 || additional.length > 0;
-  btn.disabled = !hasPhoto || (!hasText && !enhanceActive && !graniteActive && !detailActive && !bwRestoreActive);
+  btn.disabled = !hasPhoto || (!hasText && !enhanceActive && !graniteActive && !engraveActive && !detailActive && !bwRestoreActive);
 }
 
 // Провал в первые ~30 секунд означает, что KIE.ai отказал сразу (сервер занят) —
@@ -253,12 +275,19 @@ async function handleGenerate(navigate: Navigate, attempt = 0): Promise<void> {
     await currentOnGenerationStarted?.().catch(() => undefined);
     showStatus("⏳ Обрабатываем фото… (это занимает до 3 минут)");
 
-    const resultUrl = await pollGeneration(generation_id);
+    const generation = await pollGeneration(generation_id);
     const elapsedSeconds = Math.round((Date.now() - startedAt) / 1000);
 
     hideStatus();
     notifications.success("Фото обработано!");
-    navigate("results", { generationId: generation_id, resultUrl, prompt, originalDataUrl: photo.dataUrl, elapsedSeconds });
+    navigate("results", {
+      generationId: generation_id,
+      resultUrl: generation.resultUrl,
+      sourceUrl: generation.sourceUrl,
+      prompt,
+      originalDataUrl: photo.dataUrl,
+      elapsedSeconds,
+    });
   } catch (err: unknown) {
     if (err instanceof GenerationFailedError && err.earlyFail && attempt === 0) {
       showStatus("⏳ Сервер занят, автоматически повторяем попытку…");
@@ -283,12 +312,14 @@ async function handleGenerate(navigate: Navigate, attempt = 0): Promise<void> {
   }
 }
 
-async function pollGeneration(id: number): Promise<string> {
+async function pollGeneration(id: number): Promise<{ resultUrl: string; sourceUrl?: string }> {
   const pollStartedAt = Date.now();
   for (let i = 0; i < 60; i++) {
     await sleep(3000);
-    const { status, result_url } = await getGenerationStatus(id);
-    if (status === "completed" && result_url) return result_url;
+    const { status, result_url, source_url } = await getGenerationStatus(id);
+    if (status === "completed" && result_url) {
+      return { resultUrl: result_url, sourceUrl: source_url ?? undefined };
+    }
     if (status === "failed") {
       throw new GenerationFailedError(Date.now() - pollStartedAt < EARLY_FAIL_THRESHOLD_MS);
     }

@@ -122,6 +122,7 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
 
     return reply.send({
       status: gen["status"],
+      source_url: gen["source_file_id"] ? "/uploads/" + path.basename(String(gen["source_file_id"])) : null,
       result_url: gen["result_file_id"] ?? null,
     });
   });

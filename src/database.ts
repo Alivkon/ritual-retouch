@@ -1240,3 +1240,94 @@ export async function getCampaignSentCount(campaign: string): Promise<number> {
   );
   return result.rows[0]?.cnt ?? 0;
 }
+
+export async function getCampaignDetails(campaign: string): Promise<Array<{
+  email: string;
+  opened_at: string | null;
+  clicked_at: string | null;
+  open_count: number;
+  ip: string | null;
+  user_agent: string | null;
+}>> {
+  const result = await pool.query<{
+    email: string;
+    opened_at: Date | null;
+    clicked_at: Date | null;
+    open_count: number;
+    ip: string | null;
+    user_agent: string | null;
+  }>(`
+    WITH opens AS (
+      SELECT md_key,
+             MIN(opened_at) AS first_open,
+             COUNT(*)::int AS open_count,
+             (array_agg(ip ORDER BY opened_at ASC))[1] AS ip,
+             (array_agg(user_agent ORDER BY opened_at ASC))[1] AS user_agent
+      FROM email_opens
+      WHERE campaign = $1
+      GROUP BY md_key
+    ),
+    clicks AS (
+      SELECT md_key,
+             MIN(clicked_at) AS first_click,
+             (array_agg(ip ORDER BY clicked_at ASC))[1] AS click_ip,
+             (array_agg(user_agent ORDER BY clicked_at ASC))[1] AS click_ua
+      FROM email_clicks
+      WHERE campaign = $1
+      GROUP BY md_key
+    )
+    SELECT
+      r.email,
+      o.first_open AS opened_at,
+      COALESCE(o.open_count, 0) AS open_count,
+      COALESCE(o.ip, c.click_ip) AS ip,
+      COALESCE(o.user_agent, c.click_ua) AS user_agent,
+      c.first_click AS clicked_at
+    FROM email_recipients r
+    LEFT JOIN opens o ON o.md_key = r.md_key
+    LEFT JOIN clicks c ON c.md_key = r.md_key
+    WHERE o.md_key IS NOT NULL OR c.md_key IS NOT NULL
+    ORDER BY COALESCE(o.first_open, c.first_click) DESC
+  `, [campaign]);
+  return result.rows.map(r => ({
+    email: r.email,
+    opened_at: r.opened_at ? r.opened_at.toISOString() : null,
+    clicked_at: r.clicked_at ? r.clicked_at.toISOString() : null,
+    open_count: r.open_count,
+    ip: r.ip,
+    user_agent: r.user_agent,
+  }));
+}
+
+export async function getAllCampaignsStats(): Promise<Array<{
+  campaign: string;
+  opened: number;
+  clicked: number;
+  last_activity: string | null;
+}>> {
+  const result = await pool.query<{
+    campaign: string;
+    opened: number;
+    clicked: number;
+    last_activity: Date | null;
+  }>(`
+    SELECT
+      COALESCE(o.campaign, c.campaign) AS campaign,
+      COALESCE(o.opened, 0) AS opened,
+      COALESCE(c.clicked, 0) AS clicked,
+      GREATEST(o.last_open, c.last_click) AS last_activity
+    FROM (
+      SELECT campaign, COUNT(DISTINCT md_key)::int AS opened, MAX(opened_at) AS last_open
+      FROM email_opens GROUP BY campaign
+    ) o
+    FULL OUTER JOIN (
+      SELECT campaign, COUNT(DISTINCT md_key)::int AS clicked, MAX(clicked_at) AS last_click
+      FROM email_clicks GROUP BY campaign
+    ) c ON o.campaign = c.campaign
+    ORDER BY GREATEST(o.last_open, c.last_click) DESC NULLS LAST
+  `);
+  return result.rows.map(r => ({
+    ...r,
+    last_activity: r.last_activity ? r.last_activity.toISOString() : null,
+  }));
+}

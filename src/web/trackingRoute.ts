@@ -6,8 +6,12 @@ import {
   logEmailOpen,
   logEmailClick,
   getCampaignStats,
+  getCampaignDetails,
+  getAllCampaignsStats,
 } from "../database.js";
 import { buildEmailHtml } from "../utils/emailCampaign.js";
+import { resolveGeoIps } from "../utils/geoip.js";
+import { parseUserAgent } from "../utils/userAgent.js";
 
 // 1×1 transparent GIF
 const PIXEL_BUF = Buffer.from(
@@ -127,6 +131,53 @@ export function registerTrackingRoutes(fastify: FastifyInstance): void {
       if (!campaign) return reply.code(400).send({ error: "campaign required" });
       const stats = await getCampaignStats(campaign);
       return reply.send(stats);
+    },
+  );
+
+  // Admin: all campaigns stats
+  fastify.get("/api/admin/all-campaign-stats", async (_req, reply) => {
+    const stats = await getAllCampaignsStats();
+    return reply.send(stats);
+  });
+
+  // Admin: per-recipient details for one campaign
+  fastify.get<{ Querystring: { campaign?: string } }>(
+    "/api/admin/campaign-details",
+    async (req, reply) => {
+      const campaign = (req.query.campaign ?? "").trim().slice(0, 50);
+      if (!campaign) return reply.code(400).send({ error: "campaign required" });
+
+      const rows = await getCampaignDetails(campaign);
+
+      // Geo lookup for all unique IPs
+      const ips = rows.map(r => r.ip).filter(Boolean) as string[];
+      const geo = await resolveGeoIps(ips);
+
+      // Detect suspicious IPs: same IP across >2 recipients = mail scanner
+      const ipFreq = new Map<string, number>();
+      for (const r of rows) if (r.ip) ipFreq.set(r.ip, (ipFreq.get(r.ip) ?? 0) + 1);
+
+      const enriched = rows.map(r => {
+        const { device, os, client } = parseUserAgent(r.user_agent ?? '');
+        const location = r.ip ? geo.get(r.ip) : null;
+        const suspicious = r.open_count > 3 || (r.ip ? (ipFreq.get(r.ip) ?? 0) > 2 : false);
+        return {
+          email: r.email,
+          opened_at: r.opened_at,
+          clicked_at: r.clicked_at,
+          open_count: r.open_count,
+          ip: r.ip,
+          user_agent: r.user_agent,
+          country: location?.country ?? '',
+          city: location?.city ?? '',
+          device,
+          os,
+          client,
+          suspicious,
+        };
+      });
+
+      return reply.send(enriched);
     },
   );
 }

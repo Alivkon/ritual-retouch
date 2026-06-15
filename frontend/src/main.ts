@@ -72,6 +72,11 @@ function navigate(page: string, data?: GenerationResult): void {
     return;
   }
 
+  if (page === "results") {
+    initResults(lastGenerationResult, navigate);
+    return;
+  }
+
   if (!currentUser) return;
 
   const user = currentUser;
@@ -79,7 +84,6 @@ function navigate(page: string, data?: GenerationResult): void {
     void initDashboard(user, navigate);
     void refreshUserStats();
   }
-  if (page === "results") initResults(lastGenerationResult, navigate);
   if (page === "gallery") void initGallery();
 }
 

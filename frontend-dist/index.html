@@ -11,8 +11,8 @@
     <title>Ретушь фотографий для памятников и гравировки | Memorial Retouch AI</title>
     
     <!-- CSS -->
-  <script type="module" crossorigin src="/assets/index-CKgH-nRw.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DcD5V1Cx.css">
+  <script type="module" crossorigin src="/assets/index-CiZyRU_4.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DNNcWN0X.css">
 </head>
 <body>
     <!-- App Container -->
@@ -266,8 +266,12 @@
                             </div>
 
                             <!-- Engraver presets -->
+                            <div id="engraver-enhance-row" class="enhance-row" style="display:none">
+                                <button type="button" id="engrave-machine-btn" class="btn btn-outline enhance-portrait-btn">
+                                    ✏️ Под гравировку
+                                </button>
+                            </div>
                             <div class="preset-group" id="presets-engraver" style="display:none">
-                                <button type="button" class="preset-btn" data-preset="engrave" data-field="additional">Под гравировку</button>
                                 <button type="button" class="preset-btn" data-preset="contrast_eng" data-field="additional">Усилить контраст</button>
                                 <button type="button" class="preset-btn" data-preset="bw_eng" data-field="additional">Черно-белый режим</button>
                                 <button type="button" class="preset-btn" data-preset="clean_bg_eng" data-field="additional">Очистить фон</button>
@@ -332,7 +336,9 @@
                             <!-- Original Photo -->
                             <div class="result-item">
                                 <div class="result-title">Исходное фото</div>
-                                <img id="result-original" src="" alt="Original" class="result-image">
+                                <div class="result-image-wrapper">
+                                    <img id="result-original" src="" alt="Original" class="result-image">
+                                </div>
                             </div>
 
                             <!-- Generated Photo -->

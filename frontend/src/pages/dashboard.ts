@@ -1,4 +1,5 @@
 import type { User, Generation } from "../types.js";
+import type { GenerationResult } from "./generate.js";
 import { getGenerations, linkTelegramAccount } from "../api.js";
 
 function parseDisplayPrompt(raw: string): string {
@@ -7,7 +8,7 @@ function parseDisplayPrompt(raw: string): string {
   return text.length > 40 ? text.slice(0, 40) + "…" : text;
 }
 
-type Navigate = (page: string) => void;
+type Navigate = (page: string, data?: GenerationResult) => void;
 
 function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
   const grid = document.getElementById("recent-gallery");
@@ -34,7 +35,7 @@ function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
           </div>`;
       }
       return `
-        <div class="gallery-item">
+        <div class="gallery-item gallery-item--clickable">
           <img src="${g.result_file_id}" alt="Result" loading="lazy">
           <div class="gallery-prompt">${label}</div>
         </div>`;
@@ -44,7 +45,16 @@ function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
   grid.querySelectorAll(".gallery-item").forEach((item, idx) => {
     item.addEventListener("click", () => {
       const gen = gens[idx];
-      if (gen && gen.status === "completed") navigate("results");
+      if (gen && gen.status === "completed") {
+        navigate("results", {
+          generationId: gen.id,
+          resultUrl: gen.result_file_id ?? "",
+          sourceUrl: gen.source_file_id ?? undefined,
+          prompt: gen.prompt,
+          originalDataUrl: "",
+          elapsedSeconds: 0,
+        });
+      }
     });
   });
 }

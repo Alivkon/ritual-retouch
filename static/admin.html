@@ -153,6 +153,7 @@
   <button class="tab-btn" onclick="switchTab('payments')">Платежи</button>
   <button class="tab-btn" onclick="switchTab('adjustments')">Начисления</button>
   <button class="tab-btn" onclick="switchTab('grant')">Добавить</button>
+  <button class="tab-btn" onclick="switchTab('stats')">Статистика</button>
   <button class="tab-btn" onclick="switchTab('mailing')">Рассылка</button>
 </div>
 
@@ -194,6 +195,36 @@
     </table>
   </div>
   <button class="load-more" id="adj-more" onclick="loadAdjustments()">Загрузить ещё</button>
+</div>
+
+<div id="tab-stats" class="tab-content">
+  <div id="stats-list">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="action-btn" onclick="loadAllStats()">Обновить</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Кампания</th><th>Открытий</th><th>Кликов</th><th>Последняя активность</th></tr></thead>
+        <tbody id="all-stats-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="stats-detail" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <button class="action-btn" onclick="hideCampaignDetail()">← Назад</button>
+      <b id="detail-title" style="font-size:15px"></b>
+    </div>
+    <div class="table-wrap">
+      <table style="min-width:900px">
+        <thead><tr><th>Email</th><th>Открытие</th><th>Клик</th><th>Геолокация</th><th>Устр.</th><th>ОС</th><th>Клиент</th></tr></thead>
+        <tbody id="detail-body"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--hint)">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ffd60a33;border:1px solid #ffd60a;margin-right:4px"></span>Подозрительно: IP у &gt;2 получателей или &gt;3 открытий
+    </div>
+  </div>
 </div>
 
 <div id="tab-mailing" class="tab-content">
@@ -250,7 +281,7 @@ const initData = tg ? tg.initData : '';
 
 let genPage = 0, payPage = 0, usrPage = 0, adjPage = 0;
 let genDone = false, payDone = false, usrDone = false, adjDone = false;
-let loaded = { users: false, generations: false, payments: false, adjustments: false };
+let loaded = { users: false, generations: false, payments: false, adjustments: false, stats: false };
 
 async function api(path) {
   const r = await fetch(path, { headers: { 'Authorization': 'tma ' + initData } });
@@ -300,6 +331,62 @@ function userName(r) {
 function resetList(kind) {
   if (kind === 'users') { usrPage = 0; usrDone = false; document.getElementById('usr-body').innerHTML = ''; }
   if (kind === 'adjustments') { adjPage = 0; adjDone = false; document.getElementById('adj-body').innerHTML = ''; }
+}
+
+async function loadAllStats() {
+  const tbody = document.getElementById('all-stats-body');
+  tbody.innerHTML = '<tr><td colspan="4" class="msg">Загрузка...</td></tr>';
+  try {
+    const rows = await api('/api/admin/all-campaign-stats');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="msg">Нет данных</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td class="nowrap">
+          <button class="action-btn" style="background:none;color:var(--btn);padding:0;font-weight:700;font-size:13px"
+            onclick='showCampaignDetail(${JSON.stringify(r.campaign)})'>${esc(r.campaign)}</button>
+        </td>
+        <td>${num(r.opened)}</td>
+        <td>${num(r.clicked)}</td>
+        <td style="white-space:pre;font-size:11px">${dt(r.last_activity)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="4" class="msg err">${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function showCampaignDetail(campaign) {
+  document.getElementById('stats-list').style.display = 'none';
+  document.getElementById('stats-detail').style.display = 'block';
+  document.getElementById('detail-title').textContent = campaign;
+  const tbody = document.getElementById('detail-body');
+  tbody.innerHTML = '<tr><td colspan="3" class="msg">Загрузка...</td></tr>';
+  try {
+    const rows = await api('/api/admin/campaign-details?campaign=' + encodeURIComponent(campaign));
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="3" class="msg">Нет данных</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr style="${r.suspicious ? 'background:rgba(255,214,10,0.1);outline:1px solid rgba(255,214,10,0.4)' : ''}">
+        <td class="nowrap">${esc(r.email)}${r.suspicious ? ' <span title="Подозрительная активность" style="color:#ffd60a">⚠</span>' : ''}${r.open_count > 1 ? `<br><span class="muted">${r.open_count} откр.</span>` : ''}</td>
+        <td style="white-space:pre;font-size:11px${r.opened_at ? '' : ';color:var(--hint)'}">${dt(r.opened_at)}</td>
+        <td style="white-space:pre;font-size:11px${r.clicked_at ? '' : ';color:var(--hint)'}">${dt(r.clicked_at)}</td>
+        <td class="nowrap" style="font-size:12px">${r.city ? esc(r.city) + '<br>' : ''}<span class="muted">${esc(r.country)}</span></td>
+        <td style="font-size:12px">${esc(r.device)}</td>
+        <td style="font-size:12px">${esc(r.os)}</td>
+        <td class="nowrap" style="font-size:12px" title="${esc(r.user_agent)}">${esc(r.client)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="3" class="msg err">${esc(e.message)}</td></tr>`;
+  }
+}
+
+function hideCampaignDetail() {
+  document.getElementById('stats-detail').style.display = 'none';
+  document.getElementById('stats-list').style.display = 'block';
 }
 
 async function loadStats() {
@@ -477,7 +564,7 @@ async function submitGrant(e) {
 }
 
 function switchTab(name) {
-  const names = ['users', 'generations', 'payments', 'adjustments', 'grant', 'mailing'];
+  const names = ['users', 'generations', 'payments', 'adjustments', 'grant', 'stats', 'mailing'];
   document.querySelectorAll('.tab-content').forEach(el =>
     el.classList.toggle('active', el.id === 'tab-' + name));
   document.querySelectorAll('.tab-btn').forEach((b, i) =>
@@ -487,6 +574,7 @@ function switchTab(name) {
   if (name === 'generations' && !loaded.generations) { loaded.generations = true; loadGen(); }
   if (name === 'payments' && !loaded.payments) { loaded.payments = true; loadPay(); }
   if (name === 'adjustments' && !loaded.adjustments) { loaded.adjustments = true; loadAdjustments(); }
+  if (name === 'stats' && !loaded.stats) { loaded.stats = true; loadAllStats(); }
 }
 
 async function sendMailing(e) {
