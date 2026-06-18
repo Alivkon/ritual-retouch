@@ -23,13 +23,14 @@ const UPLOADS_DIR = path.resolve(__dirname, "../../uploads");
 async function notifyAdminWebGeneration(
   bot: Bot,
   userId: number,
+  email: string | null,
   prompt: string,
   sourcePath: string,
   resultPath: string,
 ): Promise<void> {
   const caption =
     `🌐 Веб-обработка\n` +
-    `👤 web:${userId}\n` +
+    `👤 ${email ?? `web:${userId}`}\n` +
     `📝 ${prompt}`;
 
   await bot.api.sendPhoto(ADMIN_ID, new InputFile(sourcePath), {
@@ -92,6 +93,7 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         await notifyAdminWebGeneration(
           bot,
           dbUser.user_id,
+          dbUser.email,
           prompt,
           localFilePath,
           resultPath,
