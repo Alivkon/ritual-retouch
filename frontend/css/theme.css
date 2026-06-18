@@ -14,16 +14,6 @@
     --border-color: #2F3E52;
 }
 
-/* Light Theme */
-[data-theme="light"] {
-    --bg-primary: #F0F3F7;
-    --bg-secondary: #E4EAF1;
-    --bg-tertiary: #D6DFE8;
-    --text-primary: #1A2535;
-    --text-secondary: #4A5E70;
-    --text-tertiary: #7A90A4;
-    --border-color: #BBC8D4;
-}
 
 /* Color Palette Classes */
 .text-primary {
@@ -528,14 +518,8 @@
     }
 }
 
-/* ── Logo switching by theme ────────────────────────────────── */
-
-/* Dark theme (default): dark logo visible, light hidden */
+/* ── Logo ───────────────────────────────────────────────────── */
 .logo-light-mobile { display: none; }
-
-/* Light theme: light logo visible, dark hidden */
-[data-theme="light"] .logo-dark { display: none; }
-[data-theme="light"] .logo-light-mobile { display: block; }
 
 /* ── Engraving preview mode ─────────────────────────────────── */
 .engraving-preview {

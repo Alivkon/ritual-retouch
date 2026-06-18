@@ -46,8 +46,11 @@ export function buildEmailHtml(campaign: string, mdKey: string): string {
         <p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6">
           Загружаете фото&nbsp;→ получаете результат. Без дизайнеров, без ожидания, 24/7.
         </p>
-        <p style="margin:0 0 28px;font-size:15px;color:#333;line-height:1.6">
+        <p style="margin:0 0 16px;font-size:15px;color:#333;line-height:1.6">
           Работаем с агентствами пакетами&nbsp;— удобно планировать бюджет.
+        </p>
+        <p style="margin:0 0 28px;font-size:15px;color:#333;line-height:1.6">
+          Выписываем счета для бухгалтерии.
         </p>
 
         <p style="margin:0 0 20px;font-size:15px;color:#333;line-height:1.6">
