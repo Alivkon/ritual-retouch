@@ -80,6 +80,17 @@ export function registerTrackingRoutes(fastify: FastifyInstance): void {
     },
   );
 
+  // Admin: register phone number as recipient (for WhatsApp campaigns)
+  fastify.post<{ Body: { phone?: string } }>(
+    "/api/admin/register-recipient",
+    async (req, reply) => {
+      const phone = (req.body.phone ?? "").trim().replace(/\D/g, "");
+      if (!phone) return reply.code(400).send({ error: "phone required" });
+      const mdKey = await addEmailRecipient(phone);
+      return reply.send({ md_key: mdKey });
+    },
+  );
+
   // Admin: send campaign
   fastify.post<{ Body: { campaign?: string; emails?: string[] } }>(
     "/api/admin/send-campaign",
