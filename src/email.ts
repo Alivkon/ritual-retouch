@@ -13,6 +13,7 @@ export async function sendVerificationEmail(email: string, token: string): Promi
   await transporter.sendMail({
     from: `"Memorial Retouch AI" <${SMTP_FROM}>`,
     to: email,
+    bcc: SMTP_FROM,
     subject: "Подтвердите email — Memorial Retouch AI",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
