@@ -15,7 +15,7 @@ import {
   getUserPayments,
 } from "../database.js";
 import { generateImage, uploadLocalFileToKie, KieError } from "../services/kieai.js";
-import { ADMIN_ID } from "../config.js";
+import { ADMIN_ID, WEBAPP_URL } from "../config.js";
 import { requireAuth } from "./auth.js";
 
 const UPLOADS_DIR = path.resolve(__dirname, "../../uploads");
@@ -27,19 +27,36 @@ async function notifyAdminWebGeneration(
   prompt: string,
   sourcePath: string,
   resultPath: string,
+  resultUrl: string,
+  packageTitle: string | null,
+  packageCode: string | null,
+  packageRemaining: number,
 ): Promise<void> {
+  const paidRemaining = packageCode === "free_start" ? 0 : packageRemaining;
   const caption =
     `🌐 Веб-обработка\n` +
+    `📍 Источник: веб\n` +
     `👤 ${email ?? `web:${userId}`}\n` +
+    `📧 Email: ${email ?? "—"}\n` +
+    `📦 Пакет: ${packageTitle ?? "—"}\n` +
+    `💳 Оплаченных осталось: ${paidRemaining}\n` +
+    `🎨 Доступно в пакете: ${packageRemaining}\n` +
     `📝 ${prompt}`;
 
-  await bot.api.sendPhoto(ADMIN_ID, new InputFile(sourcePath), {
-    caption: `${caption}\n\n📥 Исходное изображение`,
-  });
+  await bot.api
+    .sendPhoto(ADMIN_ID, new InputFile(sourcePath), {
+      caption: `${caption}\n\n📥 Исходное изображение`,
+    })
+    .catch(() => undefined);
 
-  await bot.api.sendPhoto(ADMIN_ID, new InputFile(resultPath), {
-    caption: `${caption}\n\n✅ Сгенерированное изображение`,
-  });
+  const publicResultUrl = new URL(resultUrl, WEBAPP_URL).toString();
+  await bot.api
+    .sendPhoto(ADMIN_ID, new InputFile(resultPath), {
+      caption: `${caption}\n\n✅ Сгенерированное изображение\n${publicResultUrl}`,
+    })
+    .catch(async () => {
+      await bot.api.sendMessage(ADMIN_ID, `${caption}\n\n✅ Веб-результат готов:\n${publicResultUrl}`).catch(() => undefined);
+    });
 }
 
 export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void {
@@ -86,7 +103,8 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         const resultPath = path.join(UPLOADS_DIR, resultFilename);
         fs.writeFileSync(resultPath, resultBytes);
 
-        await completeGeneration(generationId, `/uploads/${resultFilename}`);
+        const resultUrl = `/uploads/${resultFilename}`;
+        await completeGeneration(generationId, resultUrl);
         await incrementTotalGenerations(dbUser.user_id);
 
         // Notify admin
@@ -97,6 +115,10 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
           prompt,
           localFilePath,
           resultPath,
+          resultUrl,
+          dbUser.package_title,
+          dbUser.package_code,
+          dbUser.package_generations_remaining,
         ).catch((notifyErr) => {
           fastify.log.warn("Failed to notify admin about web generation %d: %s", generationId, notifyErr);
         });

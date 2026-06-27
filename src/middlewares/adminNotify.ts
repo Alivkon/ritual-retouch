@@ -45,7 +45,12 @@ async function notify(ctx: Context): Promise<void> {
   const usernameStr = from.username ? `@${from.username}` : `id:${from.id}`;
   const packageStr = userData ? (userData.package_title ?? "—") : "—";
   const gensStr = userData ? String(userData.total_generations) : "—";
-  const freeStr = userData ? String(userData.free_generations) : "—";
+  const availableStr = userData ? String(userData.package_generations_remaining) : "—";
+  const paidRemainingStr = userData
+    ? String(userData.package_code === "free_start" ? 0 : userData.package_generations_remaining)
+    : "—";
+  const emailStr = userData?.email ?? "—";
+  const sourceStr = "ТГ";
 
   let action = "";
 
@@ -88,8 +93,12 @@ async function notify(ctx: Context): Promise<void> {
 
   const text =
     `👤 ${name} ${usernameStr} (${from.id})\n` +
+    `📧 Email: ${emailStr}\n` +
+    `📍 Источник: ${sourceStr}\n` +
     `📝 Действие: ${action}\n` +
-    `📦 Пакет: ${packageStr} | Генераций: ${gensStr} | Доступно: ${freeStr}`;
+    `📦 Пакет: ${packageStr}\n` +
+    `💳 Оплаченных осталось: ${paidRemainingStr}\n` +
+    `🎨 Генераций всего: ${gensStr} | Доступно в пакете: ${availableStr}`;
 
   await ctx.api.sendMessage(ADMIN_ID, text);
 
