@@ -35,7 +35,6 @@ async function notifyAdminWebGeneration(
   const paidRemaining = packageCode === "free_start" ? 0 : packageRemaining;
   const caption =
     `🌐 Веб-обработка\n` +
-    `📍 Источник: веб\n` +
     `👤 ${email ?? `web:${userId}`}\n` +
     `📧 Email: ${email ?? "—"}\n` +
     `📦 Пакет: ${packageTitle ?? "—"}\n` +

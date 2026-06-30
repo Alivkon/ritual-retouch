@@ -16,7 +16,9 @@ declare global {
   }
 }
 
-let selectedAmount: number | null = null;
+const DEFAULT_AMOUNT = 3000;
+
+let selectedAmount: number | null = DEFAULT_AMOUNT;
 let activeWidget: { destroy: () => void; on?: (event: "success" | "fail", cb: () => void) => void } | null = null;
 
 export async function updateWalletBalance(user: User): Promise<void> {
@@ -30,7 +32,7 @@ export async function updateWalletBalance(user: User): Promise<void> {
 }
 
 export async function initWallet(user: User): Promise<void> {
-  selectedAmount = null;
+  selectedAmount = DEFAULT_AMOUNT;
   if (activeWidget) { activeWidget.destroy(); activeWidget = null; }
 
   const walletBalance = document.getElementById("wallet-balance");
@@ -44,11 +46,12 @@ export async function initWallet(user: User): Promise<void> {
 
   // Register new listeners
   document.querySelectorAll<HTMLButtonElement>(".topup-card").forEach((btn) => {
-    btn.classList.remove("active");
+    const amount = parseInt(btn.dataset["amount"] ?? "0", 10);
+    btn.classList.toggle("active", amount === DEFAULT_AMOUNT);
     btn.addEventListener("click", () => {
       document.querySelectorAll(".topup-card").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      selectedAmount = parseInt(btn.dataset["amount"] ?? "0", 10);
+      selectedAmount = amount;
     });
   });
 

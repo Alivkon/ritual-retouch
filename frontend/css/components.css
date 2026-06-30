@@ -1082,9 +1082,6 @@
     outline: none;
 }
 
-.topup-card.popular {
-    border-color: var(--primary);
-}
 
 .topup-badge-label {
     position: absolute;
