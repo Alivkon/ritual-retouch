@@ -42,11 +42,33 @@ async function notifyAdminWebGeneration(
     `🎨 Доступно в пакете: ${packageRemaining}\n` +
     `📝 ${prompt}`;
 
-  await bot.api
-    .sendPhoto(ADMIN_ID, new InputFile(sourcePath), {
-      caption: `${caption}\n\n📥 Исходное изображение`,
-    })
-    .catch(() => undefined);
+  const sourceCaption =
+    `🌐 Веб-обработка\n` +
+    `👤 ${email ?? `web:${userId}`}\n` +
+    `📧 Email: ${email ?? "—"}\n` +
+    `📦 Пакет: ${packageTitle ?? "—"}\n` +
+    `💳 Оплаченных осталось: ${paidRemaining}\n` +
+    `🎨 Доступно в пакете: ${packageRemaining}`;
+
+  const publicSourceUrl = new URL(`/uploads/${path.basename(sourcePath)}`, WEBAPP_URL).toString();
+  try {
+    const sourceMessage = await bot.api.sendMessage(ADMIN_ID, `${sourceCaption}\n\n📥 Исходное изображение:\n${publicSourceUrl}`);
+    console.log("Admin web source diagnostic sent", {
+      userId,
+      email,
+      sourcePath,
+      publicSourceUrl,
+      messageId: sourceMessage.message_id,
+    });
+  } catch (err) {
+    console.warn("Failed to send admin web source diagnostic", {
+      userId,
+      email,
+      sourcePath,
+      publicSourceUrl,
+      err,
+    });
+  }
 
   const publicResultUrl = new URL(resultUrl, WEBAPP_URL).toString();
   await bot.api
