@@ -137,8 +137,30 @@ async function yookassaFindPayment(paymentId: string): Promise<{
 const UPLOADS_DIR = path.resolve(__dirname, "../uploads");
 const FRONTEND_DIST_DIR = path.resolve(__dirname, "../frontend-dist");
 
+const BLOCKED_SCAN_PATHS = [
+  /^\/wp-admin(?:\/|$)/,
+  /^\/wp-login\.php$/,
+  /^\/xmlrpc\.php$/,
+  /^\/\.env$/,
+  /^\/\.git(?:\/|$)/,
+  /^\/vendor(?:\/|$)/,
+  /^\/phpmyadmin(?:\/|$)/i,
+  /^\/pma(?:\/|$)/i,
+  /^\/adminer\.php$/,
+  /^\/config\.php$/,
+  /^\/config\.json$/,
+  /^\/composer\.json$/,
+];
+
 export async function startWebServer(bot: Bot): Promise<void> {
   const fastify = Fastify({ logger: true });
+
+  fastify.addHook("onRequest", async (req, reply) => {
+    const pathname = new URL(req.url, "http://localhost").pathname;
+    if (BLOCKED_SCAN_PATHS.some((pattern) => pattern.test(pathname))) {
+      return reply.code(404).send("Not Found");
+    }
+  });
 
   await fastify.register(formbody);
   await fastify.register(multipart);
