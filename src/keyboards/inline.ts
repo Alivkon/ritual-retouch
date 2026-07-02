@@ -38,10 +38,7 @@ export function topupAmountsKb(): InlineKeyboard {
 }
 
 export function paywallKb(): InlineKeyboard {
-  return new InlineKeyboard()
-    .text("➕ Купить пакет", "topup")
-    .row()
-    .text("◀️ В меню", "back_to_menu");
+  return new InlineKeyboard().text("◀️ В меню", "back_to_menu");
 }
 
 export function backToMenuKb(): InlineKeyboard {

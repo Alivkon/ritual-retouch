@@ -127,6 +127,7 @@ async function yookassaFindPayment(paymentId: string): Promise<{
     headers: { Authorization: yookassaAuthHeader() },
     signal: AbortSignal.timeout(15_000),
   });
+  if (!resp.ok) throw new Error(`YooKassa payment lookup failed: ${resp.status}`);
   return (await resp.json()) as {
     status?: string;
     amount?: { value: string };
@@ -374,8 +375,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
     const clientIp = (typeof forwarded === "string" ? forwarded.split(",")[0]?.trim() : req.ip) ?? req.ip;
 
     if (!isYookassaIp(clientIp)) {
-      fastify.log.warn("Webhook from unknown IP: %s", clientIp);
-      return reply.code(403).send();
+      fastify.log.warn("YooKassa webhook from non-whitelisted IP, will verify payment via API: %s", clientIp);
     }
 
     const data = req.body as Record<string, unknown>;
@@ -398,6 +398,11 @@ export async function startWebServer(bot: Bot): Promise<void> {
 
     const userId = parseInt(payment.metadata?.user_id ?? "0", 10);
     const amount = parseFloat(payment.amount?.value ?? "0");
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      fastify.log.error("Invalid amount in YooKassa payment: %s", paymentId);
+      return reply.code(200).send();
+    }
 
     if (!userId) {
       fastify.log.error("No user_id in payment metadata: %s", paymentId);
