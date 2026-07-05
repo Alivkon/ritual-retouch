@@ -45,6 +45,7 @@ export function initCompare(): void {
     container.style.height = `${Math.round(h * scale)}px`;
 
     setSplit(50);
+    overlay.style.display = "";
     overlay.setAttribute("aria-hidden", "false");
     overlay.classList.add("active");
     document.body.style.overflow = "hidden";
@@ -53,6 +54,7 @@ export function initCompare(): void {
   function close(): void {
     overlay.classList.remove("active");
     overlay.setAttribute("aria-hidden", "true");
+    overlay.style.display = "none";
     document.body.style.overflow = "";
   }
 

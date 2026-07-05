@@ -94,6 +94,8 @@ function openWalletModal(): void {
   }
   const backdrop = document.getElementById("wallet-modal-backdrop");
   const modal = document.getElementById("wallet-modal");
+  if (backdrop) backdrop.style.display = "";
+  if (modal) modal.style.display = "";
   if (backdrop) backdrop.classList.add("show");
   if (modal) modal.classList.add("show");
   void initWallet(currentUser);
@@ -104,6 +106,8 @@ function closeWalletModal(): void {
   const modal = document.getElementById("wallet-modal");
   if (backdrop) backdrop.classList.remove("show");
   if (modal) modal.classList.remove("show");
+  if (backdrop) backdrop.style.display = "none";
+  if (modal) modal.style.display = "none";
 }
 
 // ── Auth overlay ───────────────────────────────────────────────────────────
@@ -142,13 +146,21 @@ function hideAuthInfo(): void {
 }
 
 function showRuDomainModal(): void {
-  document.getElementById("ru-domain-modal-backdrop")?.classList.add("show");
-  document.getElementById("ru-domain-modal")?.classList.add("show");
+  const backdrop = document.getElementById("ru-domain-modal-backdrop");
+  const modal = document.getElementById("ru-domain-modal");
+  if (backdrop) backdrop.style.display = "";
+  if (modal) modal.style.display = "";
+  backdrop?.classList.add("show");
+  modal?.classList.add("show");
 }
 
 function hideRuDomainModal(): void {
-  document.getElementById("ru-domain-modal-backdrop")?.classList.remove("show");
-  document.getElementById("ru-domain-modal")?.classList.remove("show");
+  const backdrop = document.getElementById("ru-domain-modal-backdrop");
+  const modal = document.getElementById("ru-domain-modal");
+  backdrop?.classList.remove("show");
+  modal?.classList.remove("show");
+  if (backdrop) backdrop.style.display = "none";
+  if (modal) modal.style.display = "none";
 }
 
 function setupAuthForm(): void {
