@@ -10,9 +10,12 @@ import {
   consumeEmailVerification,
   markEmailVerified,
   createTelegramLinkToken,
+  createPasswordReset,
+  consumePasswordReset,
+  updateAccountPassword,
   type DbUser,
 } from "../database.js";
-import { sendVerificationEmail } from "../email.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../email.js";
 import { TELEGRAM_BOT_USERNAME } from "../config.js";
 
 const BCRYPT_ROUNDS = 10;
@@ -134,6 +137,41 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     await sendVerificationEmail(email, token);
 
     return reply.send({ message: "Письмо отправлено повторно." });
+  });
+
+  fastify.post("/api/auth/forgot-password", async (req, reply) => {
+    const body = req.body as { email?: unknown };
+    const email = String(body.email ?? "").trim().toLowerCase();
+
+    const user = await findUserByEmail(email);
+    if (user && user.password_hash) {
+      const token = await createPasswordReset(user.user_id);
+      await sendPasswordResetEmail(email, token);
+    }
+
+    // Не раскрываем факт существования аккаунта
+    return reply.send({ message: "Если email зарегистрирован, письмо со ссылкой для сброса пароля отправлено." });
+  });
+
+  fastify.post("/api/auth/reset-password", async (req, reply) => {
+    const body = req.body as { token?: unknown; password?: unknown };
+    const token = String(body.token ?? "");
+    const password = String(body.password ?? "");
+
+    if (password.length < 6) {
+      return reply.code(400).send({ error: "Пароль слишком короткий (минимум 6 символов)" });
+    }
+
+    const accountId = await consumePasswordReset(token);
+    if (!accountId) {
+      return reply.code(400).send({ error: "Ссылка недействительна или устарела." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await updateAccountPassword(accountId, passwordHash);
+    const session = await createWebSession(accountId);
+
+    return reply.send({ token: session.token, message: "Пароль обновлён." });
   });
 
   fastify.post("/api/auth/telegram-link", async (req, reply) => {

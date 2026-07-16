@@ -65,6 +65,20 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return resp;
 }
 
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  return request<{ message: string }>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, password: string): Promise<{ token: string; message: string }> {
+  return request<{ token: string; message: string }>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function logout(): Promise<void> {
   await request("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   clearToken();

@@ -6,7 +6,7 @@ import type { GenerationResult } from "./pages/generate.js";
 import { initResults } from "./pages/results.js";
 import { initGallery, initCompare } from "./pages/gallery.js";
 import { initWallet, updateWalletBalance } from "./pages/wallet.js";
-import { getMe, login, register, logout, setToken, resendVerification, sleep, getBalance, confirmYookassaPayment } from "./api.js";
+import { getMe, login, register, logout, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
 import type { User } from "./types.js";
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -120,6 +120,7 @@ function showAuthOverlay(onSuccess?: () => void): void {
   if (overlay) overlay.style.display = "flex";
   if (app) app.style.display = "none";
   if (header) header.style.display = "none";
+  showLoginFormView();
 }
 
 function hideAuthOverlay(): void {
@@ -143,6 +144,36 @@ function hideAuthInfo(): void {
   if (infoEl) infoEl.style.display = "none";
   const resendBtn = document.getElementById("auth-resend") as HTMLButtonElement | null;
   if (resendBtn) resendBtn.style.display = "none";
+}
+
+function showLoginFormView(): void {
+  const authForm = document.getElementById("auth-form");
+  const forgotForm = document.getElementById("forgot-form");
+  const resetForm = document.getElementById("reset-form");
+  if (authForm) authForm.style.display = "";
+  if (forgotForm) forgotForm.style.display = "none";
+  if (resetForm) resetForm.style.display = "none";
+}
+
+function showForgotFormView(): void {
+  const authForm = document.getElementById("auth-form");
+  const forgotForm = document.getElementById("forgot-form");
+  const resetForm = document.getElementById("reset-form");
+  if (authForm) authForm.style.display = "none";
+  if (forgotForm) forgotForm.style.display = "";
+  if (resetForm) resetForm.style.display = "none";
+}
+
+function showResetFormView(token: string): void {
+  showAuthOverlay();
+  const authForm = document.getElementById("auth-form");
+  const forgotForm = document.getElementById("forgot-form");
+  const resetForm = document.getElementById("reset-form");
+  const tokenInput = document.getElementById("reset-token") as HTMLInputElement | null;
+  if (tokenInput) tokenInput.value = token;
+  if (authForm) authForm.style.display = "none";
+  if (forgotForm) forgotForm.style.display = "none";
+  if (resetForm) resetForm.style.display = "";
 }
 
 function showRuDomainModal(): void {
@@ -175,12 +206,15 @@ function setupAuthForm(): void {
   let isRegister = false;
   let lastEmail = "";
 
+  const forgotRow = document.getElementById("auth-forgot-row");
+
   tabLogin?.addEventListener("click", () => {
     isRegister = false;
     tabLogin.classList.add("active");
     tabRegister?.classList.remove("active");
     if (submitBtn) { submitBtn.textContent = "Войти"; submitBtn.disabled = false; }
     if (errorEl) errorEl.style.display = "none";
+    if (forgotRow) forgotRow.style.display = "";
     hideAuthInfo();
   });
 
@@ -194,6 +228,7 @@ function setupAuthForm(): void {
       submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
     }
     if (errorEl) errorEl.style.display = "none";
+    if (forgotRow) forgotRow.style.display = "none";
     hideAuthInfo();
   });
 
@@ -223,6 +258,75 @@ function setupAuthForm(): void {
 
   document.getElementById("ru-domain-modal-close")?.addEventListener("click", hideRuDomainModal);
   document.getElementById("ru-domain-modal-backdrop")?.addEventListener("click", hideRuDomainModal);
+
+  document.getElementById("auth-forgot-link")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    showForgotFormView();
+  });
+
+  document.getElementById("forgot-back-link")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    showLoginFormView();
+  });
+
+  document.getElementById("forgot-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = (document.getElementById("forgot-email") as HTMLInputElement).value.trim();
+    void handleForgotSubmit(email);
+  });
+
+  document.getElementById("reset-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const token = (document.getElementById("reset-token") as HTMLInputElement).value;
+    const password = (document.getElementById("reset-password") as HTMLInputElement).value;
+    const confirmPassword = (document.getElementById("reset-password-confirm") as HTMLInputElement).value;
+    void handleResetSubmit(token, password, confirmPassword);
+  });
+}
+
+async function handleForgotSubmit(email: string): Promise<void> {
+  const errorEl = document.getElementById("forgot-error");
+  const infoEl = document.getElementById("forgot-info");
+  const submitBtn = document.getElementById("forgot-submit") as HTMLButtonElement | null;
+  if (errorEl) errorEl.style.display = "none";
+  if (infoEl) infoEl.style.display = "none";
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const resp = await forgotPassword(email);
+    if (infoEl) { infoEl.textContent = resp.message; infoEl.style.display = "block"; }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Ошибка отправки письма";
+    if (errorEl) { errorEl.textContent = msg; errorEl.style.display = "block"; }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+async function handleResetSubmit(token: string, password: string, confirmPassword: string): Promise<void> {
+  const errorEl = document.getElementById("reset-error");
+  const submitBtn = document.getElementById("reset-submit") as HTMLButtonElement | null;
+  if (errorEl) errorEl.style.display = "none";
+
+  if (password !== confirmPassword) {
+    if (errorEl) { errorEl.textContent = "Пароли не совпадают"; errorEl.style.display = "block"; }
+    return;
+  }
+
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const resp = await resetPassword(token, password);
+    setToken(resp.token);
+    currentUser = await getMe();
+    hideAuthOverlay();
+    setupApp();
+    navigate("dashboard");
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Ошибка сброса пароля";
+    if (errorEl) { errorEl.textContent = msg; errorEl.style.display = "block"; }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
 }
 
 async function handleAuthSubmit(
@@ -314,6 +418,13 @@ async function main(): Promise<void> {
   if (sessionToken) {
     setToken(sessionToken);
     window.history.replaceState({}, "", "/");
+  }
+
+  const resetToken = params.get("reset_token");
+  if (resetToken) {
+    window.history.replaceState({}, "", "/");
+    showResetFormView(resetToken);
+    return;
   }
 
   // После успешного платежа обновляем пакет

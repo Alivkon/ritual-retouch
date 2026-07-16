@@ -195,6 +195,16 @@ export async function initDb(): Promise<void> {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id BIGSERIAL PRIMARY KEY,
+        account_id BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+        token TEXT UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS account_link_tokens (
         id BIGSERIAL PRIMARY KEY,
         account_id BIGINT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -1002,6 +1012,29 @@ export async function consumeEmailVerification(token: string): Promise<number | 
 export async function markEmailVerified(accountId: number): Promise<void> {
   await pool.query("UPDATE accounts SET email_verified = TRUE, updated_at = NOW() WHERE id = $1", [accountId]);
   await pool.query("UPDATE account_identities SET verified = TRUE, updated_at = NOW() WHERE account_id = $1 AND provider = 'email'", [accountId]);
+}
+
+export async function createPasswordReset(accountId: number): Promise<string> {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  await pool.query("DELETE FROM password_resets WHERE account_id = $1", [accountId]);
+  await pool.query("INSERT INTO password_resets (account_id, token, expires_at) VALUES ($1, $2, $3)", [accountId, token, expiresAt]);
+  return token;
+}
+
+export async function consumePasswordReset(token: string): Promise<number | null> {
+  const result = await pool.query<{ account_id: number }>(
+    `DELETE FROM password_resets
+     WHERE token = $1 AND expires_at > NOW()
+     RETURNING account_id`,
+    [token],
+  );
+  return result.rows[0]?.account_id ?? null;
+}
+
+export async function updateAccountPassword(accountId: number, passwordHash: string): Promise<void> {
+  await pool.query("UPDATE accounts SET password_hash = $2, updated_at = NOW() WHERE id = $1", [accountId, passwordHash]);
+  await pool.query("DELETE FROM web_sessions WHERE account_id = $1", [accountId]);
 }
 
 export async function createTelegramLinkToken(accountId: number): Promise<string> {
