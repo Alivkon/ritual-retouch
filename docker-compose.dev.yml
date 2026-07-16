@@ -1,16 +1,20 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: postgre_imagetransformer
+    container_name: postgre-ritual-retouch
     restart: unless-stopped
     environment:
-      POSTGRES_USER: imagetransformer
+      POSTGRES_USER: ritual_retouch
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: imagetransformer
+      POSTGRES_DB: ritual_retouch
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    # Проброшено наружу для локальной разработки (на проде порт закрыт).
+    # Хост 5433, т.к. 5432 занят системным PostgreSQL.
+    ports:
+      - "5433:5432"
     networks:
-      - imgtransform_net
+      - ritual_retouch_dev
 
   bot:
     build: .
@@ -19,21 +23,22 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://imagetransformer:${POSTGRES_PASSWORD}@postgre_imagetransformer/imagetransformer
+      # Совпадает с prod (docker-compose.yml), меняется только сеть/порты
+      DATABASE_URL: postgresql://ritual_retouch:${POSTGRES_PASSWORD}@postgre-ritual-retouch:5432/ritual_retouch
       WEBAPP_URL: http://localhost:8080
     ports:
       - "8080:8080"
     volumes:
       - uploads_data:/app/uploads
     networks:
-      - imgtransform_net
+      - ritual_retouch_dev
     depends_on:
       - postgres
 
 volumes:
-  pg_data:
+  postgres_data:
   uploads_data:
 
 networks:
-  imgtransform_net:
-    name: imgtransform_net
+  ritual_retouch_dev:
+    name: ritual_retouch_dev
