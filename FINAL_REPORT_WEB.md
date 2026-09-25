@@ -22,6 +22,19 @@
 - Модульная архитектура
 - Готовность к JavaScript/TypeScript интеграции
 
+### 📄 Статические HTML-страницы
+
+| Маршрут | Назначение | Исходный файл |
+|---|---|---|
+| `/` | Основной пользовательский интерфейс (SPA) | `frontend/index.html` → production-сборка `frontend-dist/index.html` |
+| `/oferta` | Публичная оферта | `static/oferta.html` |
+| `/privacy` | Политика обработки персональных данных | `static/privacy.html` |
+| `/pay_yookassa` | Страница оплаты через YooKassa | `static/pay_yookassa.html` |
+| `/admin` | Панель администратора | `static/admin.html` |
+| `/yandex_e1fd6d51afb2c44b.html` | Служебная страница подтверждения сайта для Яндекса | `frontend/public/yandex_e1fd6d51afb2c44b.html` |
+
+**Итого:** 5 пользовательских страниц и 1 служебная HTML-страница. Dashboard, Generate, Results, Gallery и Wallet — внутренние экраны SPA; они отображаются через общий `index.html` и не являются отдельными статическими HTML-файлами. На всех пользовательских HTML-страницах установлен Google Tag Manager `GTM-K5MBTGVM`; служебная страница Яндекса не содержит аналитических скриптов.
+
 ### ✅ Стили и оформление
 
 5 CSS файлов, **~1,850 строк кода:**

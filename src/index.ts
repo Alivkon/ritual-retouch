@@ -33,10 +33,8 @@ async function main(): Promise<void> {
 
   console.log("Starting bot...");
 
-  await Promise.race([
-    bot.start(),
-    startWebServer(bot),
-  ]);
+  await startWebServer(bot);
+  await bot.start();
 }
 
 main().catch((err) => {
