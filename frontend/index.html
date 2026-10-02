@@ -51,11 +51,14 @@
                     <button class="nav-item" data-page="wallet">
                         <span>💳 Оплатить</span>
                     </button>
+                    <button class="nav-item" data-page="review-gallery" id="review-nav-item" style="display:none">
+                        <span>🛡 Проверка</span>
+                    </button>
                 </nav>
 
                 <div class="header-actions">
-
-                    <button class="btn-icon" id="profile-menu" title="Профиль">
+                    <span class="profile-user-label" id="profile-user-label" hidden></span>
+                    <button class="btn-icon" id="profile-menu" title="Профиль" aria-label="Профиль">
                         👤
                     </button>
                 </div>
@@ -75,6 +78,10 @@
             <button class="mobile-nav-item" data-page="wallet">
                 <span class="mobile-nav-icon">💳</span>
                 <span class="mobile-nav-label">Тарифы</span>
+            </button>
+            <button class="mobile-nav-item" data-page="review-gallery" id="mobile-review-nav-item" style="display:none">
+                <span class="mobile-nav-icon">🛡</span>
+                <span class="mobile-nav-label">Проверка</span>
             </button>
             <button class="mobile-nav-item" id="mobile-profile-menu" title="Профиль">
                 <span class="mobile-nav-icon">👤</span>
@@ -139,6 +146,10 @@
                         <button class="btn btn-large btn-secondary" id="how-to-btn">
                             <span class="btn-icon-large">❓</span>
                             <span class="btn-text">Как это работает</span>
+                        </button>
+                        <button class="btn btn-large btn-secondary" data-page="review-gallery" id="review-entry-btn" style="display:none">
+                            <span class="btn-icon-large">🛡</span>
+                            <span class="btn-text">Служебная галерея</span>
                         </button>
                     </div>
 
@@ -581,6 +592,27 @@
                                 Загрузить фотографию
                             </button>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- Review Gallery Page -->
+            <section class="page" id="page-review-gallery" data-page="review-gallery">
+                <div class="container">
+                    <div class="review-toolbar">
+                        <div>
+                            <h2>Служебная галерея</h2>
+                            <p class="section-hint">Завершённые пары изображений для внутренней проверки.</p>
+                        </div>
+                        <div class="review-toolbar-actions">
+                            <button class="btn btn-secondary btn-sm" id="review-gallery-refresh">Обновить</button>
+                        </div>
+                    </div>
+                    <div id="review-gallery-empty" class="gallery-empty" style="display:none">Нет готовых пар для проверки</div>
+                    <div class="review-gallery-grid" id="review-gallery-grid"></div>
+                    <div class="review-more-row">
+                        <button class="btn btn-secondary" id="review-gallery-more" type="button">Показать ещё</button>
                     </div>
                 </div>
             </section>

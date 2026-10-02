@@ -46,3 +46,30 @@ export const SMTP_PORT = parseInt(optional("SMTP_PORT", "465"), 10);
 export const SMTP_USER = optional("SMTP_USER", "");
 export const SMTP_PASS = optional("SMTP_PASS", "");
 export const SMTP_FROM = optional("SMTP_FROM", "");
+
+const IS_PRODUCTION = process.env["NODE_ENV"] === "production";
+
+function optionalNormalizedEmail(name: string): string {
+  const value = process.env[name];
+  if (!value) return "";
+  return value.trim().toLowerCase();
+}
+
+function mediaUrlSecret(): string {
+  const value = process.env["MEDIA_URL_SECRET"];
+  if (!value) {
+    if (IS_PRODUCTION) throw new Error("Environment variable MEDIA_URL_SECRET is required in production");
+    return "development-media-url-secret-change-before-production-000000";
+  }
+  if (value === BOT_TOKEN) throw new Error("MEDIA_URL_SECRET must not be equal to BOT_TOKEN");
+  if (Buffer.byteLength(value, "utf8") < 32) {
+    throw new Error("MEDIA_URL_SECRET must be at least 32 bytes");
+  }
+  return value;
+}
+
+export const MEDIA_REVIEWER_EMAIL = optionalNormalizedEmail("MEDIA_REVIEWER_EMAIL");
+if (IS_PRODUCTION && !MEDIA_REVIEWER_EMAIL) {
+  throw new Error("Environment variable MEDIA_REVIEWER_EMAIL is required in production");
+}
+export const MEDIA_URL_SECRET = mediaUrlSecret();

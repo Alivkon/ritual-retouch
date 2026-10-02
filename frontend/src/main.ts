@@ -6,6 +6,7 @@ import type { GenerationResult } from "./pages/generate.js";
 import { initResults } from "./pages/results.js";
 import { initGallery, initCompare } from "./pages/gallery.js";
 import { initWallet, updateWalletBalance } from "./pages/wallet.js";
+import { initReviewGallery } from "./pages/review-gallery.js";
 import { getMe, login, register, logout, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
 import type { User } from "./types.js";
 
@@ -19,8 +20,43 @@ let appReady = false;
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 
-const PAGES = ["dashboard", "generate", "gallery", "results"] as const;
+const PAGES = ["dashboard", "generate", "gallery", "results", "review-gallery"] as const;
 type Page = (typeof PAGES)[number];
+
+
+function updateReviewVisibility(): void {
+  const visible = currentUser?.can_review_media === true;
+  const navItems = [
+    document.getElementById("review-nav-item"),
+    document.getElementById("mobile-review-nav-item"),
+  ];
+  const entry = document.getElementById("review-entry-btn");
+  navItems.forEach((nav) => {
+    if (nav) nav.style.display = visible ? "" : "none";
+  });
+  if (entry) entry.style.display = visible ? "" : "none";
+}
+
+function updateProfileUserLabel(): void {
+  const label = document.getElementById("profile-user-label");
+  const button = document.getElementById("profile-menu") as HTMLButtonElement | null;
+  if (!label || !button) return;
+
+  if (!currentUser) {
+    label.textContent = "";
+    label.hidden = true;
+    button.title = "Профиль";
+    return;
+  }
+
+  const displayName = currentUser.username?.trim()
+    ? `@${currentUser.username.trim()}`
+    : (currentUser.email?.trim() || "Профиль");
+
+  label.textContent = displayName;
+  label.hidden = false;
+  button.title = `Профиль: ${displayName}`;
+}
 
 async function refreshUserStats(): Promise<void> {
   if (!currentUser) return;
@@ -79,6 +115,12 @@ function navigate(page: string, data?: GenerationResult): void {
 
   if (!currentUser) return;
 
+  if (page === "review-gallery") {
+    if (currentUser.can_review_media) void initReviewGallery();
+    else navigate("dashboard");
+    return;
+  }
+
   const user = currentUser;
   if (page === "dashboard") {
     void initDashboard(user, navigate);
@@ -120,6 +162,7 @@ function showAuthOverlay(onSuccess?: () => void): void {
   if (overlay) overlay.style.display = "flex";
   if (app) app.style.display = "none";
   if (header) header.style.display = "none";
+  updateProfileUserLabel();
   showLoginFormView();
 }
 
@@ -130,6 +173,7 @@ function hideAuthOverlay(): void {
   if (overlay) overlay.style.display = "none";
   if (app) app.style.display = "";
   if (header) header.style.display = "";
+  updateProfileUserLabel();
 }
 
 function showAuthInfo(msg: string, showResend = false): void {
@@ -320,6 +364,7 @@ async function handleResetSubmit(token: string, password: string, confirmPasswor
     currentUser = await getMe();
     hideAuthOverlay();
     setupApp();
+    updateReviewVisibility();
     navigate("dashboard");
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Ошибка сброса пароля";
@@ -349,6 +394,7 @@ async function handleAuthSubmit(
       currentUser = resp.user;
       hideAuthOverlay();
       setupApp();
+      updateReviewVisibility();
       const cb = pendingAfterAuth;
       pendingAfterAuth = null;
       if (cb) cb();
@@ -368,10 +414,15 @@ async function handleAuthSubmit(
 
 function setupProfileMenu(): void {
   const handleLogout = () => {
-    const confirmed = window.confirm("Выйти из аккаунта?");
+    const displayName = currentUser?.username?.trim()
+      ? `@${currentUser.username.trim()}`
+      : (currentUser?.email?.trim() || "пользователь");
+
+    const confirmed = window.confirm(`Выйти из аккаунта ${displayName}?`);
     if (!confirmed) return;
     void logout().then(() => {
       currentUser = null;
+      updateProfileUserLabel();
       showAuthOverlay();
     });
   };
@@ -438,7 +489,14 @@ async function main(): Promise<void> {
     currentUser = await getMe();
     hideAuthOverlay();
     setupApp();
+    updateReviewVisibility();
+    const wantsInternalGallery = window.location.pathname === "/app/internal/gallery";
     
+    if (wantsInternalGallery) {
+      navigate(currentUser.can_review_media ? "review-gallery" : "dashboard");
+      return;
+    }
+
     if (paymentSuccess && currentUser) {
       const oldRemaining = currentUser.package_generations_remaining;
       void initWallet(currentUser);
@@ -484,6 +542,13 @@ async function main(): Promise<void> {
       navigate("dashboard");
     }
   } catch {
+    if (window.location.pathname === "/app/internal/gallery") {
+      showAuthOverlay(() => {
+        updateReviewVisibility();
+        navigate(currentUser?.can_review_media ? "review-gallery" : "dashboard");
+      });
+      return;
+    }
     hideAuthOverlay();
     setupApp();
     navigate("generate");

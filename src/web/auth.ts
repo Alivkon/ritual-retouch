@@ -13,17 +13,19 @@ import {
   createPasswordReset,
   consumePasswordReset,
   updateAccountPassword,
+  syncMediaReviewerStatus,
   type DbUser,
+  type DbUserWithAuth,
 } from "../database.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../email.js";
-import { TELEGRAM_BOT_USERNAME } from "../config.js";
+import { MEDIA_REVIEWER_EMAIL, TELEGRAM_BOT_USERNAME } from "../config.js";
 
 const BCRYPT_ROUNDS = 10;
 
 export async function requireAuth(
   req: FastifyRequest,
   reply: FastifyReply,
-): Promise<DbUser | null> {
+): Promise<DbUserWithAuth | null> {
   const auth = req.headers["authorization"] ?? "";
   if (!auth.startsWith("Bearer ")) {
     await reply.code(401).send({ error: "Unauthorized" });
@@ -33,6 +35,25 @@ export async function requireAuth(
   const user = await validateWebSession(token);
   if (!user) {
     await reply.code(401).send({ error: "Session expired" });
+    return null;
+  }
+  return user as DbUserWithAuth;
+}
+
+async function canReviewMedia(user: DbUserWithAuth): Promise<boolean> {
+  const email = user.email?.trim().toLowerCase() ?? "";
+  if (!user.email_verified || !MEDIA_REVIEWER_EMAIL || email !== MEDIA_REVIEWER_EMAIL) return false;
+  return syncMediaReviewerStatus(user.user_id, MEDIA_REVIEWER_EMAIL);
+}
+
+export async function requireMediaReviewer(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<DbUserWithAuth | null> {
+  const user = await requireAuth(req, reply);
+  if (!user) return null;
+  if (!(await canReviewMedia(user))) {
+    await reply.code(403).send({ error: "Forbidden" });
     return null;
   }
   return user;
@@ -98,6 +119,7 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
         package_title: user.package_title,
         package_generations_total: user.package_generations_total,
         package_generations_remaining: user.package_generations_remaining,
+        can_review_media: await canReviewMedia(user),
       },
     });
   });
@@ -205,6 +227,7 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
       package_title: user.package_title,
       package_generations_total: user.package_generations_total,
       package_generations_remaining: user.package_generations_remaining,
+      can_review_media: await canReviewMedia(user),
     });
   });
 }

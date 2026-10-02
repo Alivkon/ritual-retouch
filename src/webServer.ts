@@ -10,6 +10,8 @@ import { registerUploadRoute } from "./web/uploadRoute.js";
 import { registerGenerateRoute } from "./web/generateRoute.js";
 import { registerWebPaymentRoutes } from "./web/paymentRoute.js";
 import { registerTrackingRoutes } from "./web/trackingRoute.js";
+import { registerMediaRoute } from "./web/mediaRoute.js";
+import { registerReviewRoute } from "./web/reviewRoute.js";
 import { notifyAdminPaymentSuccess } from "./middlewares/adminNotify.js";
 import IPCIDR from "ip-cidr";
 import {
@@ -135,7 +137,6 @@ async function yookassaFindPayment(paymentId: string): Promise<{
   };
 }
 
-const UPLOADS_DIR = path.resolve(__dirname, "../uploads");
 const FRONTEND_DIST_DIR = path.resolve(__dirname, "../frontend-dist");
 
 const BLOCKED_SCAN_PATHS = [
@@ -169,23 +170,25 @@ export async function startWebServer(bot: Bot): Promise<void> {
   // Telegram WebApp static files (admin panel, payment pages)
   await fastify.register(staticPlugin, { root: STATIC_DIR, prefix: "/", wildcard: false });
 
-  // User uploads (photos + generated results)
-  await fastify.register(staticPlugin, {
-    root: UPLOADS_DIR,
-    prefix: "/uploads/",
-    decorateReply: false,
-  });
-
   // Register web API routes
+  registerMediaRoute(fastify);
   registerAuthRoutes(fastify);
   registerUploadRoute(fastify);
   registerGenerateRoute(fastify, bot);
+  registerReviewRoute(fastify);
   registerWebPaymentRoutes(fastify, bot);
   registerTrackingRoutes(fastify);
 
   // Frontend SPA (served only if frontend-dist exists)
   const fs = await import("node:fs");
   if (fs.existsSync(FRONTEND_DIST_DIR)) {
+    fastify.get("/app/internal/gallery", (_req, reply) => {
+      reply
+        .header("X-Robots-Tag", "noindex, nofollow, noarchive")
+        .header("Cache-Control", "private, no-store");
+      return reply.sendFile("index.html", FRONTEND_DIST_DIR, { cacheControl: false });
+    });
+
     await fastify.register(staticPlugin, {
       root: FRONTEND_DIST_DIR,
       prefix: "/",

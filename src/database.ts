@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Pool, type PoolClient, types } from "pg";
-import { DATABASE_URL, FREE_GENERATIONS, PACKAGE_DEFINITIONS } from "./config.js";
+import { DATABASE_URL, FREE_GENERATIONS, MEDIA_REVIEWER_EMAIL, PACKAGE_DEFINITIONS } from "./config.js";
 
 types.setTypeParser(20, (val: string) => parseInt(val, 10));
 
@@ -19,6 +19,7 @@ export interface DbUser {
   package_title: string | null;
   package_generations_total: number;
   package_generations_remaining: number;
+  media_reviewer: boolean;
 }
 
 export interface DbUserWithAuth extends DbUser {
@@ -42,6 +43,7 @@ const ACCOUNT_SELECT = `
     a.primary_email AS email,
     a.password_hash,
     a.email_verified,
+    a.media_reviewer,
     a.total_generations,
     a.created_at,
     0::double precision AS balance,
@@ -78,6 +80,9 @@ export async function initDb(): Promise<void> {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+
+    await client.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS media_reviewer BOOLEAN NOT NULL DEFAULT FALSE`);
+    await refreshConfiguredMediaReviewer(client);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS account_identities (
@@ -183,6 +188,11 @@ export async function initDb(): Promise<void> {
         completed_at TIMESTAMPTZ
       )
     `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_generations_account_completed
+      ON generations (account_id, completed_at DESC)
+      WHERE status = 'completed'
+    `);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS email_verifications (
@@ -235,6 +245,7 @@ export async function initDb(): Promise<void> {
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_uploads_account_filename ON uploads (account_id, filename)`);
 
     // Email campaign tracking
     await client.query(`
@@ -270,6 +281,19 @@ export async function initDb(): Promise<void> {
 
 function userFromRow(row: DbUserWithAuth | undefined): DbUserWithAuth | null {
   return row ?? null;
+}
+
+async function refreshConfiguredMediaReviewer(client: PoolClient): Promise<void> {
+  if (!MEDIA_REVIEWER_EMAIL) {
+    await client.query("UPDATE accounts SET media_reviewer = FALSE WHERE media_reviewer = TRUE");
+    return;
+  }
+  await client.query(
+    `UPDATE accounts
+     SET media_reviewer = (email_verified = TRUE AND lower(trim(primary_email)) = $1)
+     WHERE primary_email IS NOT NULL`,
+    [MEDIA_REVIEWER_EMAIL],
+  );
 }
 
 async function getAccountById(accountId: number): Promise<DbUserWithAuth | null> {
@@ -1205,6 +1229,89 @@ export async function getGenerationById(id: number, identifier: number): Promise
   if (!accountId) return null;
   const result = await pool.query("SELECT * FROM generations WHERE id = $1 AND account_id = $2", [id, accountId]);
   return result.rows[0] ?? null;
+}
+
+
+export async function syncMediaReviewerStatus(accountId: number, reviewerEmail: string): Promise<boolean> {
+  if (!reviewerEmail) {
+    await pool.query("UPDATE accounts SET media_reviewer = FALSE WHERE id = $1", [accountId]);
+    return false;
+  }
+  const result = await pool.query<{ media_reviewer: boolean }>(
+    `UPDATE accounts
+     SET media_reviewer = (email_verified = TRUE AND lower(trim(primary_email)) = $2)
+     WHERE id = $1
+     RETURNING media_reviewer`,
+    [accountId, reviewerEmail],
+  );
+  return result.rows[0]?.media_reviewer === true;
+}
+
+export async function findUploadForAccount(accountId: number, filename: string): Promise<{ id: number; filename: string } | null> {
+  const result = await pool.query<{ id: number; filename: string }>(
+    "SELECT id, filename FROM uploads WHERE account_id = $1 AND filename = $2 LIMIT 1",
+    [accountId, filename],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function getReviewGenerationsForAccount(accountId: number, limit = 20, offset = 0): Promise<Record<string, unknown>[]> {
+  const result = await pool.query(
+    `SELECT id, prompt, source_file_id, result_file_id, status, cost, is_free, generation_cost, created_at, completed_at
+     FROM generations
+     WHERE account_id = $1
+       AND status = 'completed'
+       AND source_file_id IS NOT NULL
+       AND result_file_id IS NOT NULL
+     ORDER BY completed_at DESC NULLS LAST, created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [accountId, limit, offset],
+  );
+  return result.rows;
+}
+
+export async function getGenerationsByMediaFilenames(filenames: string[]): Promise<Record<string, unknown>[]> {
+  if (filenames.length === 0) return [];
+  const result = await pool.query(
+    `SELECT g.id, g.account_id AS user_id, a.primary_email AS email, tg.telegram_username AS username,
+            g.prompt, g.status, g.source_file_id, g.result_file_id, g.created_at, g.completed_at
+     FROM generations g
+     JOIN accounts a ON a.id = g.account_id
+     LEFT JOIN LATERAL (
+       SELECT telegram_username FROM account_identities
+       WHERE account_id = a.id AND provider = 'telegram'
+       ORDER BY updated_at DESC
+       LIMIT 1
+     ) tg ON TRUE
+     WHERE g.source_file_id = ANY($1)
+        OR g.result_file_id = ANY($1)
+        OR replace(g.source_file_id, '/uploads/', '') = ANY($1)
+        OR replace(g.result_file_id, '/uploads/', '') = ANY($1)`,
+    [filenames],
+  );
+  return result.rows;
+}
+
+export async function markMediaPairDeleted(sourceFilename: string, resultFilename: string): Promise<number> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query<{ id: number }>(
+      `UPDATE generations
+       SET status = 'deleted', source_file_id = NULL, result_file_id = NULL, completed_at = COALESCE(completed_at, NOW())
+       WHERE (source_file_id = $1 OR source_file_id = $3)
+         AND (result_file_id = $2 OR result_file_id = $4)
+       RETURNING id`,
+      [sourceFilename, resultFilename, `/uploads/${sourceFilename}`, `/uploads/${resultFilename}`],
+    );
+    await client.query("COMMIT");
+    return result.rowCount ?? 0;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // ─── Email campaign tracking ──────────────────────────────────────────────────

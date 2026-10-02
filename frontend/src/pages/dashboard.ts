@@ -27,7 +27,9 @@ function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
     .slice(0, 6)
     .map((g) => {
       const label = parseDisplayPrompt(g.prompt);
-      if (g.status !== "completed" || !g.result_file_id) {
+      const resultUrl = g.result_url ?? g.result_file_id;
+      const sourceUrl = g.source_url ?? g.source_file_id;
+      if (g.status !== "completed" || !resultUrl) {
         return `
           <div class="gallery-item gallery-item-${g.status}">
             <div class="gallery-status">${g.status === "processing" ? "⏳" : "❌"}</div>
@@ -36,7 +38,7 @@ function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
       }
       return `
         <div class="gallery-item gallery-item--clickable">
-          <img src="${g.result_file_id}" alt="Result" loading="lazy">
+          <img src="${resultUrl}" alt="Result" loading="lazy">
           <div class="gallery-prompt">${label}</div>
         </div>`;
     })
@@ -48,8 +50,8 @@ function renderRecentGallery(gens: Generation[], navigate: Navigate): void {
       if (gen && gen.status === "completed") {
         navigate("results", {
           generationId: gen.id,
-          resultUrl: gen.result_file_id ?? "",
-          sourceUrl: gen.source_file_id ?? undefined,
+          resultUrl: gen.result_url ?? gen.result_file_id ?? "",
+          sourceUrl: gen.source_url ?? gen.source_file_id ?? undefined,
           prompt: gen.prompt,
           originalDataUrl: "",
           elapsedSeconds: 0,

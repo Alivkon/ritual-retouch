@@ -1,4 +1,4 @@
-import type { User, Generation, GenerationStatus, AuthResponse } from "./types.js";
+import type { User, Generation, GenerationStatus, AuthResponse, InternalGenerationsResponse, ReviewGenerationResponse } from "./types.js";
 
 const TOKEN_KEY = "auth_token";
 
@@ -19,11 +19,11 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string> ?? {}),
-  };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const headers = new Headers(options.headers);
+  if (options.body != null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const resp = await fetch(url, { ...options, headers });
 
@@ -33,6 +33,8 @@ async function request<T>(
     if (hadToken) window.location.reload();
     throw new Error("Unauthorized");
   }
+
+  if (resp.status === 204) return undefined as T;
 
   const data = await resp.json() as T & { error?: string };
   if (!resp.ok) {
@@ -167,4 +169,17 @@ export async function linkTelegramAccount(): Promise<{ bot_url: string; expires_
 
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+
+export async function getReviewGenerations(page = 0, limit = 20): Promise<ReviewGenerationResponse> {
+  return request<ReviewGenerationResponse>(`/api/web/review-generations?page=${page}&limit=${limit}`);
+}
+
+export async function getInternalGenerations(page = 0, limit = 30): Promise<InternalGenerationsResponse> {
+  return request<InternalGenerationsResponse>(`/api/internal/generations?page=${page}&limit=${limit}`);
+}
+
+export async function deleteInternalMediaPair(sourceFilename: string): Promise<void> {
+  await request<void>(`/api/internal/media-pairs/${encodeURIComponent(sourceFilename)}`, { method: "DELETE" });
 }

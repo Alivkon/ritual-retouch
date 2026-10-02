@@ -1,5 +1,4 @@
 import fs from "node:fs";
-import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import { InputFile, type Bot } from "grammy";
 import {
@@ -13,12 +12,21 @@ import {
   getGenerationById,
   getUserGenerations,
   getUserPayments,
+  findUploadForAccount,
+  getTelegramIdForAccount,
 } from "../database.js";
 import { generateImage, uploadLocalFileToKie, KieError } from "../services/kieai.js";
-import { ADMIN_ID, WEBAPP_URL } from "../config.js";
+import { ADMIN_ID } from "../config.js";
 import { requireAuth } from "./auth.js";
+import { assertMediaFileInsideUploads, createMediaUrl, mediaPath, normalizeMediaFilename } from "./mediaRoute.js";
 
-const UPLOADS_DIR = path.resolve(__dirname, "../../uploads");
+function signedUrlFromStored(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const filename = normalizeMediaFilename(value);
+  if (!filename) return null;
+  return createMediaUrl(filename);
+}
+
 
 async function notifyAdminWebGeneration(
   bot: Bot,
@@ -27,7 +35,7 @@ async function notifyAdminWebGeneration(
   prompt: string,
   sourcePath: string,
   resultPath: string,
-  resultUrl: string,
+  resultFilename: string,
   packageTitle: string | null,
   packageCode: string | null,
   packageRemaining: number,
@@ -50,34 +58,111 @@ async function notifyAdminWebGeneration(
     `💳 Оплаченных осталось: ${paidRemaining}\n` +
     `🎨 Доступно в пакете: ${packageRemaining}`;
 
-  const publicSourceUrl = new URL(`/uploads/${path.basename(sourcePath)}`, WEBAPP_URL).toString();
+  const sourceFilename = normalizeMediaFilename(sourcePath) ?? sourcePath.split("/").pop() ?? "";
   try {
-    const sourceMessage = await bot.api.sendMessage(ADMIN_ID, `${sourceCaption}\n\n📥 Исходное изображение:\n${publicSourceUrl}`);
-    console.log("Admin web source diagnostic sent", {
+    const sourceMessage = await bot.api.sendPhoto(ADMIN_ID, new InputFile(sourcePath, sourceFilename), {
+      caption: `${sourceCaption}\n\n📥 Исходное изображение`,
+    });
+    console.log("Admin web source photo sent", {
       userId,
       email,
       sourcePath,
-      publicSourceUrl,
+      sourceFilename,
       messageId: sourceMessage.message_id,
     });
-  } catch (err) {
-    console.warn("Failed to send admin web source diagnostic", {
+  } catch (photoErr) {
+    console.warn("Failed to send admin web source photo, falling back to document", {
       userId,
       email,
       sourcePath,
-      publicSourceUrl,
+      sourceFilename,
+      err: photoErr,
+    });
+    try {
+      const sourceDocument = await bot.api.sendDocument(ADMIN_ID, new InputFile(sourcePath, sourceFilename), {
+        caption: `${sourceCaption}\n\n📥 Исходное изображение`,
+      });
+      console.log("Admin web source document sent", {
+        userId,
+        email,
+        sourcePath,
+        sourceFilename,
+        messageId: sourceDocument.message_id,
+      });
+    } catch (documentErr) {
+      console.warn("Failed to send admin web source document", {
+        userId,
+        email,
+        sourcePath,
+        sourceFilename,
+        err: documentErr,
+      });
+    }
+  }
+
+  try {
+    const resultMessage = await bot.api.sendPhoto(ADMIN_ID, new InputFile(resultPath), {
+      caption: `${caption}\n\n✅ Сгенерированное изображение`,
+    });
+    console.log("Admin web result sent", {
+      userId,
+      email,
+      resultPath,
+      resultFilename,
+      messageId: resultMessage.message_id,
+    });
+  } catch (err) {
+    console.warn("Failed to send admin web result photo", {
+      userId,
+      email,
+      resultPath,
+      resultFilename,
       err,
     });
   }
+}
 
-  const publicResultUrl = new URL(resultUrl, WEBAPP_URL).toString();
-  await bot.api
-    .sendPhoto(ADMIN_ID, new InputFile(resultPath), {
-      caption: `${caption}\n\n✅ Сгенерированное изображение\n${publicResultUrl}`,
-    })
-    .catch(async () => {
-      await bot.api.sendMessage(ADMIN_ID, `${caption}\n\n✅ Веб-результат готов:\n${publicResultUrl}`).catch(() => undefined);
+async function notifyLinkedTelegramWebGeneration(
+  bot: Bot,
+  userId: number,
+  email: string | null,
+  prompt: string,
+  resultPath: string,
+  resultFilename: string,
+): Promise<void> {
+  const telegramId = await getTelegramIdForAccount(userId);
+  if (!telegramId) {
+    console.log("Web generation has no linked Telegram account", {
+      userId,
+      email,
+      resultFilename,
     });
+    return;
+  }
+
+  try {
+    const message = await bot.api.sendPhoto(telegramId, new InputFile(resultPath), {
+      caption:
+        `✅ Ваш результат готов\n\n` +
+        `📧 Аккаунт: ${email ?? "—"}\n` +
+        `📝 ${prompt}`,
+    });
+    console.log("Linked Telegram web result sent", {
+      userId,
+      email,
+      telegramId,
+      resultFilename,
+      messageId: message.message_id,
+    });
+  } catch (err) {
+    console.warn("Failed to send web result to linked Telegram account", {
+      userId,
+      email,
+      telegramId,
+      resultFilename,
+      err,
+    });
+  }
 }
 
 export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void {
@@ -98,8 +183,19 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
       return reply.code(400).send({ error: "Запрос слишком длинный (максимум 5000 символов)" });
     }
 
+    const filename = normalizeMediaFilename(uploadUrl);
+    if (!filename || !/_src\.(?:jpe?g|png|webp)$/i.test(filename)) {
+      return reply.code(400).send({ error: "Invalid upload reference" });
+    }
+
     const dbUser = await getUser(user.user_id);
     if (!dbUser) return reply.code(404).send({ error: "User not found" });
+
+    const upload = await findUploadForAccount(dbUser.user_id, filename);
+    if (!upload) return reply.code(403).send({ error: "Upload does not belong to this account" });
+
+    const localFilePath = await assertMediaFileInsideUploads(filename);
+    if (!localFilePath) return reply.code(404).send({ error: "Uploaded file not found" });
 
     const reservation = await reserveGenerationCredit(dbUser.user_id);
     if (!reservation) {
@@ -107,10 +203,6 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         error: "Нет доступных обработок. Купите пакет, чтобы продолжить.",
       });
     }
-
-    // Derive absolute file path from URL like "/uploads/abc.jpg"
-    const filename = path.basename(uploadUrl);
-    const localFilePath = path.join(UPLOADS_DIR, filename);
 
     const generationId = await createGeneration(dbUser.user_id, prompt, filename, 0, 0, reservation.userPackageId, 1);
 
@@ -120,15 +212,14 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         const kieImageUrl = await uploadLocalFileToKie(localFilePath);
         const resultBytes = await generateImage(kieImageUrl, prompt);
 
-        const resultFilename = `${filename.replace(/_src\.jpg$/, "")}_result.jpg`;
-        const resultPath = path.join(UPLOADS_DIR, resultFilename);
+        const resultFilename = `${filename.replace(/_src\.(?:jpe?g|png|webp)$/i, "")}_result.jpg`;
+        const resultPath = mediaPath(resultFilename);
         fs.writeFileSync(resultPath, resultBytes);
 
-        const resultUrl = `/uploads/${resultFilename}`;
-        await completeGeneration(generationId, resultUrl);
+        await completeGeneration(generationId, resultFilename);
         await incrementTotalGenerations(dbUser.user_id);
 
-        // Notify admin
+        // Notify admin and the linked Telegram account, when the web account is linked.
         await notifyAdminWebGeneration(
           bot,
           dbUser.user_id,
@@ -136,12 +227,22 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
           prompt,
           localFilePath,
           resultPath,
-          resultUrl,
+          resultFilename,
           dbUser.package_title,
           dbUser.package_code,
           dbUser.package_generations_remaining,
         ).catch((notifyErr) => {
           fastify.log.warn("Failed to notify admin about web generation %d: %s", generationId, notifyErr);
+        });
+        await notifyLinkedTelegramWebGeneration(
+          bot,
+          dbUser.user_id,
+          dbUser.email,
+          prompt,
+          resultPath,
+          resultFilename,
+        ).catch((notifyErr) => {
+          fastify.log.warn("Failed to notify linked Telegram about web generation %d: %s", generationId, notifyErr);
         });
 
       } catch (err) {
@@ -167,8 +268,8 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
 
     return reply.send({
       status: gen["status"],
-      source_url: gen["source_file_id"] ? "/uploads/" + path.basename(String(gen["source_file_id"])) : null,
-      result_url: gen["result_file_id"] ?? null,
+      source_url: signedUrlFromStored(gen["source_file_id"]),
+      result_url: signedUrlFromStored(gen["result_file_id"]),
     });
   });
 
@@ -186,6 +287,8 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
       return reply.send(
         rows.map((r) => ({
           ...r,
+          source_url: signedUrlFromStored(r["source_file_id"]),
+          result_url: signedUrlFromStored(r["result_file_id"]),
           created_at: r["created_at"] instanceof Date ? (r["created_at"] as Date).toISOString() : r["created_at"],
           completed_at: r["completed_at"] instanceof Date ? (r["completed_at"] as Date).toISOString() : r["completed_at"],
         })),

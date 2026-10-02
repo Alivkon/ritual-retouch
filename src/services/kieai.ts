@@ -104,9 +104,20 @@ export async function generateImage(imageUrl: string, prompt: string): Promise<B
     "Content-Type": "application/json",
   };
   const payload = {
-    model: "google/nano-banana",
-    input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
+    model: "google/nano-banana-edit",
+    input: {
+      prompt,
+      image_urls: [imageUrl],
+      output_format: "png",
+      aspect_ratio: "1:1",
+    },
   };
+
+  // Previous Nano Banana request. Keep this block for a quick rollback.
+  // const payload = {
+  //   model: "google/nano-banana",
+  //   input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
+  // };
 
   const taskId = await createKieTask(headers, payload);
 

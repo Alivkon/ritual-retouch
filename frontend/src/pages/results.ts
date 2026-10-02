@@ -7,7 +7,7 @@ let resultsInitialized = false;
 function normalizeImageUrl(url: string | undefined | null): string {
   if (!url) return "";
   if (url.startsWith("data:") || url.startsWith("blob:") || /^https?:\/\//i.test(url)) return url;
-  return url.startsWith("/") ? url : `/uploads/${url}`;
+  return url.startsWith("/") ? url : url;
 }
 
 

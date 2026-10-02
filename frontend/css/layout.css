@@ -102,6 +102,16 @@
     align-items: center;
 }
 
+.profile-user-label {
+    color: var(--dark-gray);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .btn-icon {
     background: none;
     border: none;
@@ -984,4 +994,127 @@
 .header {
     background-color: var(--bg-secondary) !important;
     border-bottom-color: var(--border-color) !important;
+}
+
+/* Internal review gallery */
+.review-toolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+}
+
+.review-toolbar h2 {
+    margin: 0 0 var(--space-xs);
+}
+
+.review-toolbar-actions {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.review-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-lg);
+}
+
+.review-card {
+    background-color: var(--white);
+    border: 1px solid var(--border-gray);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.review-card-images {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background-color: var(--lighter-gray);
+}
+
+.review-image-btn {
+    appearance: none;
+    border: 0;
+    border-right: 1px solid var(--border-gray);
+    background: var(--white);
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+}
+
+.review-image-btn:last-child {
+    border-right: 0;
+}
+
+.review-image-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.review-image-btn span {
+    position: absolute;
+    left: var(--space-sm);
+    bottom: var(--space-sm);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: var(--font-size-xs);
+}
+
+.review-image-expired::after {
+    content: "URL истёк";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.86);
+    color: var(--dark-gray);
+    font-weight: var(--font-weight-semibold);
+}
+
+.review-card-body {
+    padding: var(--space-md);
+    display: grid;
+    gap: var(--space-xs);
+}
+
+.review-card-title {
+    color: var(--dark-gray);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+}
+
+.review-card-meta {
+    color: var(--medium-gray);
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+}
+
+.review-card-actions {
+    padding: 0 var(--space-md) var(--space-md);
+}
+
+.review-more-row {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-xl);
+}
+
+@media (max-width: 479px) {
+    .review-toolbar {
+        flex-direction: column;
+    }
+
+    .review-gallery-grid {
+        grid-template-columns: 1fr;
+    }
 }

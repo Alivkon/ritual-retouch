@@ -128,9 +128,10 @@ function buildCard(g: Generation): HTMLElement {
 
   const displayPrompt = parseDisplayPrompt(g.prompt);
 
-  if (g.status === "completed" && g.result_file_id && g.result_file_id.startsWith("/uploads/")) {
+  const resultUrl = g.result_url ?? g.result_file_id;
+  if (g.status === "completed" && resultUrl) {
     card.innerHTML = `
-      <img src="${g.result_file_id}" alt="Result" loading="lazy">
+      <img src="${resultUrl}" alt="Result" loading="lazy">
       <div class="gallery-overlay">
         <div class="gallery-prompt">${escapeHtml(displayPrompt)}</div>
         <div class="gallery-meta">${formatDate(g.created_at)}</div>
