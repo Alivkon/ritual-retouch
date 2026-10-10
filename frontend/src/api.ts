@@ -67,6 +67,15 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return resp;
 }
 
+export async function loginTelegramWebApp(initData: string): Promise<AuthResponse> {
+  const resp = await request<AuthResponse>("/api/auth/telegram-webapp", {
+    method: "POST",
+    body: JSON.stringify({ init_data: initData }),
+  });
+  setToken(resp.token);
+  return resp;
+}
+
 export async function forgotPassword(email: string): Promise<{ message: string }> {
   return request<{ message: string }>("/api/auth/forgot-password", {
     method: "POST",

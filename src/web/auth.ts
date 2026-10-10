@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import {
@@ -14,11 +15,12 @@ import {
   consumePasswordReset,
   updateAccountPassword,
   syncMediaReviewerStatus,
+  getOrCreateUser,
   type DbUser,
   type DbUserWithAuth,
 } from "../database.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../email.js";
-import { MEDIA_REVIEWER_EMAIL, TELEGRAM_BOT_USERNAME } from "../config.js";
+import { BOT_TOKEN, MEDIA_REVIEWER_EMAIL, TELEGRAM_BOT_USERNAME } from "../config.js";
 
 const BCRYPT_ROUNDS = 10;
 
@@ -44,6 +46,26 @@ async function canReviewMedia(user: DbUserWithAuth): Promise<boolean> {
   const email = user.email?.trim().toLowerCase() ?? "";
   if (!user.email_verified || !MEDIA_REVIEWER_EMAIL || email !== MEDIA_REVIEWER_EMAIL) return false;
   return syncMediaReviewerStatus(user.user_id, MEDIA_REVIEWER_EMAIL);
+}
+
+function validateTelegramWebAppInitData(initData: string): Record<string, string> | null {
+  const params = new URLSearchParams(initData);
+  const receivedHash = params.get("hash");
+  if (!receivedHash) return null;
+  params.delete("hash");
+
+  const dataCheckString = Array.from(params.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}=${v}`)
+    .join("\n");
+
+  const secretKey = crypto.createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
+  const expected = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+  if (expected.length !== receivedHash.length) return null;
+  if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(receivedHash))) return null;
+
+  return Object.fromEntries(params.entries());
 }
 
 export async function requireMediaReviewer(
@@ -194,6 +216,54 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     const session = await createWebSession(accountId);
 
     return reply.send({ token: session.token, message: "Пароль обновлён." });
+  });
+
+  fastify.post("/api/auth/telegram-webapp", async (req, reply) => {
+    const body = req.body as { init_data?: unknown; initData?: unknown };
+    const initData = String(body.init_data ?? body.initData ?? "").trim();
+    if (!initData) {
+      return reply.code(400).send({ error: "Telegram initData is required" });
+    }
+
+    const parsed = validateTelegramWebAppInitData(initData);
+    if (!parsed) {
+      return reply.code(401).send({ error: "Telegram initData verification failed" });
+    }
+
+    let userPayload: { id?: number; username?: string; first_name?: string } | null = null;
+    try {
+      userPayload = JSON.parse(parsed["user"] ?? "{}") as { id?: number; username?: string; first_name?: string };
+    } catch {
+      return reply.code(401).send({ error: "Invalid Telegram user payload" });
+    }
+
+    const telegramUserId = Number(userPayload.id ?? NaN);
+    if (!Number.isFinite(telegramUserId)) {
+      return reply.code(401).send({ error: "Telegram user id is missing" });
+    }
+
+    const dbUser = await getOrCreateUser(telegramUserId, userPayload.username, userPayload.first_name ?? "");
+    const session = await createWebSession(dbUser.user_id);
+    const authUser = { ...dbUser, password_hash: null, email_verified: false } as DbUserWithAuth;
+
+    return reply.send({
+      token: session.token,
+      expires_at: session.expiresAt.toISOString(),
+      user: {
+        user_id: dbUser.user_id,
+        username: dbUser.username ?? null,
+        email: (dbUser as unknown as { email?: string }).email ?? null,
+        balance: 0,
+        free_generations: dbUser.package_generations_remaining,
+        total_generations: dbUser.total_generations,
+        has_package: dbUser.package_code !== null,
+        package_code: dbUser.package_code,
+        package_title: dbUser.package_title,
+        package_generations_total: dbUser.package_generations_total,
+        package_generations_remaining: dbUser.package_generations_remaining,
+        can_review_media: await canReviewMedia(authUser),
+      },
+    });
   });
 
   fastify.post("/api/auth/telegram-link", async (req, reply) => {

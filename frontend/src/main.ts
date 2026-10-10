@@ -7,7 +7,7 @@ import { initResults } from "./pages/results.js";
 import { initGallery, initCompare } from "./pages/gallery.js";
 import { initWallet, updateWalletBalance } from "./pages/wallet.js";
 import { initReviewGallery } from "./pages/review-gallery.js";
-import { getMe, login, register, logout, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
+import { getMe, login, loginTelegramWebApp, register, logout, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
 import type { User } from "./types.js";
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -462,6 +462,21 @@ function setupApp(): void {
 async function main(): Promise<void> {
   initTheme();
   setupAuthForm();
+
+  const telegramInitData = (window as typeof window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData;
+  if (telegramInitData) {
+    try {
+      const resp = await loginTelegramWebApp(telegramInitData);
+      currentUser = resp.user;
+      hideAuthOverlay();
+      setupApp();
+      updateReviewVisibility();
+      navigate("dashboard");
+      return;
+    } catch (err) {
+      console.warn("Telegram WebApp auto-login failed:", err);
+    }
+  }
 
   // После перехода по ссылке верификации сервер редиректит на /?session=TOKEN
   const params = new URLSearchParams(window.location.search);
