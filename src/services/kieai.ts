@@ -98,26 +98,58 @@ async function createKieTask(
   throw lastError;
 }
 
+const KIE_MODEL_NAME = "google/nano-banana-2-1";
+// Rollback plan:
+// 1. temporarily change KIE_MODEL_NAME to "google/nano-banana-edit" or "google/nano-banana";
+// 2. keep this block commented for quick revert while testing 2.1;
+// 3. after validation, delete the legacy branch once 2.1 is stable.
+//
+// Legacy models kept for a fast rollback:
+// const KIE_MODEL_NAME = "google/nano-banana-edit";
+// const KIE_MODEL_NAME = "google/nano-banana";
+
+function buildKiePayload(prompt: string, imageUrl: string): Record<string, unknown> {
+  const payloadByModel: Record<string, Record<string, unknown>> = {
+    "google/nano-banana-2-1": {
+      model: "google/nano-banana-2-1",
+      input: {
+        prompt,
+        image_urls: [imageUrl],
+        output_format: "png",
+        aspect_ratio: "1:1",
+        resolution: "1K",
+      },
+    },
+    // Previous Nano Banana request. Keep this block for a quick rollback.
+    // "google/nano-banana-edit": {
+    //   model: "google/nano-banana-edit",
+    //   input: {
+    //     prompt,
+    //     image_urls: [imageUrl],
+    //     output_format: "png",
+    //     aspect_ratio: "1:1",
+    //   },
+    // },
+    // "google/nano-banana": {
+    //   model: "google/nano-banana",
+    //   input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
+    // },
+  };
+
+  const payload = payloadByModel[KIE_MODEL_NAME];
+  if (!payload) {
+    throw new KieError(`Unsupported KIE model: ${KIE_MODEL_NAME}`);
+  }
+
+  return payload;
+}
+
 export async function generateImage(imageUrl: string, prompt: string): Promise<Buffer> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${KIE_API_KEY.trim()}`,
     "Content-Type": "application/json",
   };
-  const payload = {
-    model: "google/nano-banana-edit",
-    input: {
-      prompt,
-      image_urls: [imageUrl],
-      output_format: "png",
-      aspect_ratio: "1:1",
-    },
-  };
-
-  // Previous Nano Banana request. Keep this block for a quick rollback.
-  // const payload = {
-  //   model: "google/nano-banana",
-  //   input: { prompt, imageUrls: [imageUrl], resolution: "1K" },
-  // };
+  const payload = buildKiePayload(prompt, imageUrl);
 
   const taskId = await createKieTask(headers, payload);
 
