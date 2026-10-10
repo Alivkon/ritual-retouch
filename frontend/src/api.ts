@@ -110,10 +110,11 @@ export async function uploadPhoto(file: File): Promise<string> {
 export async function startGeneration(
   uploadUrl: string,
   prompt: string,
+  selections: string[],
 ): Promise<{ generation_id: number; status: string }> {
   return request("/api/web/generate", {
     method: "POST",
-    body: JSON.stringify({ upload_url: uploadUrl, prompt }),
+    body: JSON.stringify({ upload_url: uploadUrl, prompt, selections }),
   });
 }
 

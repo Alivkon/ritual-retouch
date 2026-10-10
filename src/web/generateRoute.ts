@@ -17,6 +17,7 @@ import {
 } from "../database.js";
 import { generateImage, uploadLocalFileToKie, KieError } from "../services/kieai.js";
 import { ADMIN_ID } from "../config.js";
+import { escapeTelegramHtml } from "../utils/telegramHtml.js";
 import { requireAuth } from "./auth.js";
 import { assertMediaFileInsideUploads, createMediaUrl, mediaPath, normalizeMediaFilename } from "./mediaRoute.js";
 
@@ -32,7 +33,7 @@ async function notifyAdminWebGeneration(
   bot: Bot,
   userId: number,
   email: string | null,
-  prompt: string,
+  selections: string[],
   sourcePath: string,
   resultPath: string,
   resultFilename: string,
@@ -41,20 +42,24 @@ async function notifyAdminWebGeneration(
   packageRemaining: number,
 ): Promise<void> {
   const paidRemaining = packageCode === "free_start" ? 0 : packageRemaining;
+  const safeEmail = escapeTelegramHtml(email ?? `web:${userId}`);
+  const safePackageTitle = escapeTelegramHtml(packageTitle ?? "—");
+  const selectionSummary = selections.length > 0 ? selections.join(", ") : "Пользовательский запрос";
+  const safeSelectionSummary = escapeTelegramHtml(selectionSummary);
   const caption =
     `🌐 Веб-обработка\n` +
-    `👤 ${email ?? `web:${userId}`}\n` +
-    `📧 Email: ${email ?? "—"}\n` +
-    `📦 Пакет: ${packageTitle ?? "—"}\n` +
+    `👤 ${safeEmail}\n` +
+    `📧 Email: ${safeEmail}\n` +
+    `📦 Пакет: ${safePackageTitle}\n` +
     `💳 Оплаченных осталось: ${paidRemaining}\n` +
     `🎨 Доступно в пакете: ${packageRemaining}\n` +
-    `📝 ${prompt}`;
+    `📝 Выбрано: ${safeSelectionSummary}`;
 
   const sourceCaption =
     `🌐 Веб-обработка\n` +
-    `👤 ${email ?? `web:${userId}`}\n` +
-    `📧 Email: ${email ?? "—"}\n` +
-    `📦 Пакет: ${packageTitle ?? "—"}\n` +
+    `👤 ${safeEmail}\n` +
+    `📧 Email: ${safeEmail}\n` +
+    `📦 Пакет: ${safePackageTitle}\n` +
     `💳 Оплаченных осталось: ${paidRemaining}\n` +
     `🎨 Доступно в пакете: ${packageRemaining}`;
 
@@ -126,7 +131,7 @@ async function notifyLinkedTelegramWebGeneration(
   bot: Bot,
   userId: number,
   email: string | null,
-  prompt: string,
+  selections: string[],
   resultPath: string,
   resultFilename: string,
 ): Promise<void> {
@@ -141,11 +146,12 @@ async function notifyLinkedTelegramWebGeneration(
   }
 
   try {
+    const selectionSummary = selections.length > 0 ? selections.join(", ") : "Пользовательский запрос";
     const message = await bot.api.sendPhoto(telegramId, new InputFile(resultPath), {
       caption:
         `✅ Ваш результат готов\n\n` +
-        `📧 Аккаунт: ${email ?? "—"}\n` +
-        `📝 ${prompt}`,
+        `📧 Аккаунт: ${escapeTelegramHtml(email ?? "—")}\n` +
+        `📝 Выбрано: ${escapeTelegramHtml(selectionSummary)}`,
     });
     console.log("Linked Telegram web result sent", {
       userId,
@@ -172,9 +178,16 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
     const user = await requireAuth(req, reply);
     if (!user) return;
 
-    const body = req.body as { upload_url?: unknown; prompt?: unknown };
+    const body = req.body as { upload_url?: unknown; prompt?: unknown; selections?: unknown };
     const uploadUrl = String(body.upload_url ?? "").trim();
     const prompt = String(body.prompt ?? "").trim();
+    const selections = Array.isArray(body.selections)
+      ? body.selections
+          .filter((value): value is string => typeof value === "string")
+          .map((value) => value.trim().slice(0, 60))
+          .filter(Boolean)
+          .slice(0, 10)
+      : [];
 
     if (!uploadUrl || !prompt) {
       return reply.code(400).send({ error: "upload_url and prompt are required" });
@@ -216,29 +229,31 @@ export function registerGenerateRoute(fastify: FastifyInstance, bot: Bot): void 
         const resultPath = mediaPath(resultFilename);
         fs.writeFileSync(resultPath, resultBytes);
 
-        await completeGeneration(generationId, resultFilename);
-        await incrementTotalGenerations(dbUser.user_id);
-
-        // Notify admin and the linked Telegram account, when the web account is linked.
+        // Notify the admin as soon as a result exists, independently of later DB updates.
         await notifyAdminWebGeneration(
           bot,
           dbUser.user_id,
           dbUser.email,
-          prompt,
+          selections,
           localFilePath,
           resultPath,
           resultFilename,
           dbUser.package_title,
           dbUser.package_code,
-          dbUser.package_generations_remaining,
+          reservation.generationsRemaining,
         ).catch((notifyErr) => {
           fastify.log.warn("Failed to notify admin about web generation %d: %s", generationId, notifyErr);
         });
+
+        await completeGeneration(generationId, resultFilename);
+        await incrementTotalGenerations(dbUser.user_id);
+
+        // Also notify the linked Telegram account, when the web account is linked.
         await notifyLinkedTelegramWebGeneration(
           bot,
           dbUser.user_id,
           dbUser.email,
-          prompt,
+          selections,
           resultPath,
           resultFilename,
         ).catch((notifyErr) => {

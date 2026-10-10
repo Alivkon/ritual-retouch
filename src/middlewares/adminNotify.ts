@@ -1,6 +1,7 @@
 import type { Api, NextFunction, Context } from "grammy";
 import { getUser } from "../database.js";
 import { ADMIN_ID } from "../config.js";
+import { escapeTelegramHtml } from "../utils/telegramHtml.js";
 
 // Уведомление админу об успешной оплате через ЮKassa (веб-оплаты идут мимо
 // Telegram-апдейтов, поэтому adminNotifyMiddleware их не видит).
@@ -92,11 +93,11 @@ async function notify(ctx: Context): Promise<void> {
   }
 
   const text =
-    `👤 ${name} ${usernameStr} (${from.id})\n` +
-    `📧 Email: ${emailStr}\n` +
+    `👤 ${escapeTelegramHtml(name)} ${escapeTelegramHtml(usernameStr)} (${from.id})\n` +
+    `📧 Email: ${escapeTelegramHtml(emailStr)}\n` +
     `📍 Источник: ${sourceStr}\n` +
-    `📝 Действие: ${action}\n` +
-    `📦 Пакет: ${packageStr}\n` +
+    `📝 Действие: ${escapeTelegramHtml(action)}\n` +
+    `📦 Пакет: ${escapeTelegramHtml(packageStr)}\n` +
     `💳 Оплаченных осталось: ${paidRemainingStr}\n` +
     `🎨 Генераций всего: ${gensStr} | Доступно в пакете: ${availableStr}`;
 
@@ -110,10 +111,10 @@ async function notify(ctx: Context): Promise<void> {
 
 export async function adminNotifyMiddleware(ctx: Context, next: NextFunction): Promise<void> {
   if (isGenerationRequest(ctx)) {
-    await notify(ctx).catch(() => undefined);
+    await notify(ctx).catch((err) => console.warn("Failed to notify admin about Telegram request", err));
     return next();
   }
 
   await next();
-  await notify(ctx).catch(() => undefined);
+  await notify(ctx).catch((err) => console.warn("Failed to notify admin about Telegram activity", err));
 }

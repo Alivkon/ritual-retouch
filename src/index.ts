@@ -34,7 +34,14 @@ async function main(): Promise<void> {
   console.log("Starting bot...");
 
   await startWebServer(bot);
-  await bot.start();
+  void bot.start().catch((err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("409: Conflict")) {
+      console.warn("Telegram polling disabled because another bot instance is active");
+      return;
+    }
+    console.error("Telegram polling stopped:", err);
+  });
 }
 
 main().catch((err) => {

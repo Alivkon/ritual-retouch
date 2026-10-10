@@ -1,4 +1,4 @@
-import { Composer, InputFile } from "grammy";
+import { Composer, InputFile, type Api } from "grammy";
 import {
   getUser,
   getOrCreateUser,
@@ -12,8 +12,40 @@ import {
 import { generateImage, KieError } from "../services/kieai.js";
 import { mainMenuKb, paywallKb } from "../keyboards/inline.js";
 import { BOT_TOKEN, ADMIN_ID } from "../config.js";
+import { escapeTelegramHtml, truncateTelegramText } from "../utils/telegramHtml.js";
 
 export const generateRouter = new Composer();
+
+async function notifyAdminTelegramResult(
+  api: Api,
+  result: string | Buffer,
+  user: { id: number; username?: string; first_name?: string },
+  prompt: string,
+): Promise<void> {
+  if (user.id === ADMIN_ID) return;
+
+  const username = user.username ? `@${user.username}` : `id:${user.id}`;
+  const promptPreview = truncateTelegramText(prompt, 300);
+  const photo = typeof result === "string" ? result : new InputFile(result, "result.jpg");
+
+  try {
+    const message = await api.sendPhoto(ADMIN_ID, photo, {
+      caption:
+        `🖼 Результат обработки\n` +
+        `👤 ${escapeTelegramHtml(user.first_name ?? "")} ${escapeTelegramHtml(username)}\n` +
+        `📝 ${escapeTelegramHtml(promptPreview)}`,
+    });
+    console.log("Admin Telegram result sent", {
+      userId: user.id,
+      messageId: message.message_id,
+    });
+  } catch (err) {
+    console.warn("Failed to send Telegram result to admin", {
+      userId: user.id,
+      err,
+    });
+  }
+}
 
 const HOW_TO_TEXT =
   "📷 <b>Как подготовить фотографию</b>\n\n" +
@@ -97,34 +129,41 @@ generateRouter.on("message:photo").filter(
 
       const errMsg = err instanceof KieError ? String(err.message) : String(err);
       await ctx.reply(
-        `❌ Ошибка при генерации: ${errMsg}\n\nСписанная обработка возвращена в пакет.`,
+        `❌ Ошибка при генерации: ${escapeTelegramHtml(errMsg)}\n\nСписанная обработка возвращена в пакет.`,
         { reply_markup: mainMenuKb() },
       );
       return;
     }
 
+    let resultFileId: string;
     try {
       const inputFile = new InputFile(resultBytes, "result.jpg");
       const sent = await ctx.replyWithPhoto(inputFile, {
         caption: "✅ Готово! Отправьте новое фото с подписью, чтобы сделать ещё одну.",
         reply_markup: mainMenuKb(),
       });
-      const resultFileId = sent.photo[sent.photo.length - 1]!.file_id;
+      resultFileId = sent.photo[sent.photo.length - 1]!.file_id;
+    } catch (err) {
+      await notifyAdminTelegramResult(ctx.api, resultBytes, user, prompt);
+      await failGeneration(generationId);
+      if (!isAdmin) await setFreeGenerations(user.id, dbUser.package_generations_remaining);
+      await ctx.api.deleteMessage(ctx.chat!.id, processingMsg.message_id).catch(() => undefined);
+      await ctx.reply(
+        `❌ Изображение сгенерировано, но не удалось отправить: ${escapeTelegramHtml(String(err))}`,
+        { reply_markup: mainMenuKb() },
+      );
+      return;
+    }
+
+    await notifyAdminTelegramResult(ctx.api, resultFileId, user, prompt);
+
+    try {
       await completeGeneration(generationId, resultFileId);
       await incrementTotalGenerations(user.id);
-
-      if (!isAdmin) {
-        const usernameStr = user.username ? `@${user.username}` : `id:${user.id}`;
-        await ctx.api
-          .sendPhoto(ADMIN_ID, resultFileId, {
-            caption: `🖼 Результат обработки\n👤 ${user.first_name ?? ""} ${usernameStr}\n📝 ${prompt}`,
-          })
-          .catch(() => undefined);
-      }
     } catch (err) {
       await failGeneration(generationId);
       await ctx.reply(
-        `❌ Изображение сгенерировано, но не удалось отправить: ${String(err)}`,
+        `❌ Изображение отправлено, но не удалось сохранить результат: ${escapeTelegramHtml(String(err))}`,
         { reply_markup: mainMenuKb() },
       );
       return;

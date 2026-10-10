@@ -242,6 +242,22 @@ function buildMergedPrompt(): string {
        + base;
 }
 
+function buildSelectionSummary(): string[] {
+  const labels: string[] = [];
+  const addLabel = (button: HTMLButtonElement | null): void => {
+    const label = button?.textContent
+      ?.replace(/^[^A-Za-zА-Яа-яЁё0-9]+/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (label && !labels.includes(label)) labels.push(label);
+  };
+
+  addLabel(document.querySelector<HTMLButtonElement>(`.segment-btn[data-role="${currentRole}"]`));
+  document.querySelectorAll<HTMLButtonElement>(".enhance-portrait-btn.active, .preset-btn.active")
+    .forEach(addLabel);
+  return labels;
+}
+
 function updateGenerateBtn(): void {
   const btn = document.getElementById("generate-btn") as HTMLButtonElement | null;
   if (!btn) return;
@@ -274,6 +290,7 @@ async function handleGenerate(navigate: Navigate, attempt = 0): Promise<void> {
   }
 
   const prompt = buildMergedPrompt();
+  const selections = buildSelectionSummary();
 
   if (prompt.length > 5000) {
     notifications.error("Количество символов в промте более 5000 символов. Пожалуйста уменьшите длину запроса");
@@ -289,7 +306,7 @@ async function handleGenerate(navigate: Navigate, attempt = 0): Promise<void> {
     const uploadUrl = await uploadPhoto(photo.file);
     showStatus("⏳ Запускаем обработку…");
 
-    const { generation_id } = await startGeneration(uploadUrl, prompt);
+    const { generation_id } = await startGeneration(uploadUrl, prompt, selections);
     await currentOnGenerationStarted?.().catch(() => undefined);
     showStatus("⏳ Обрабатываем фото… (это занимает до 3 минут)");
 
