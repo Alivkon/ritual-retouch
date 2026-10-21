@@ -21,6 +21,7 @@ import {
 } from "../database.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../email.js";
 import { BOT_TOKEN, MEDIA_REVIEWER_EMAIL, TELEGRAM_BOT_USERNAME } from "../config.js";
+import { isDisposableEmail } from "../utils/disposableEmail.js";
 
 const BCRYPT_ROUNDS = 10;
 
@@ -87,8 +88,16 @@ export function registerAuthRoutes(fastify: FastifyInstance): void {
     const email = String(body.email ?? "").trim().toLowerCase();
     const password = String(body.password ?? "");
 
-    if (!email.includes("@") || password.length < 6) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 6) {
       return reply.code(400).send({ error: "Неверный email или пароль слишком короткий (минимум 6 символов)" });
+    }
+
+    if (!email.endsWith(".ru")) {
+      return reply.code(400).send({ error: "Это российский сервис — Вы можете использовать только почту из зоны «.ru» (КоАП РФ ст. 13,55)" });
+    }
+
+    if (isDisposableEmail(email)) {
+      return reply.code(400).send({ error: "Этот домен относится к сервису временной почты. Для регистрации используйте постоянный почтовый ящик." });
     }
 
     const existing = await findUserByEmail(email);

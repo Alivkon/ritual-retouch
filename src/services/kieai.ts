@@ -98,7 +98,7 @@ async function createKieTask(
   throw lastError;
 }
 
-const KIE_MODEL_NAME = "google/nano-banana-2-1";
+const KIE_MODEL_NAME = "nano-banana-2-1";
 // Rollback plan:
 // 1. temporarily change KIE_MODEL_NAME to "google/nano-banana-edit" or "google/nano-banana";
 // 2. keep this block commented for quick revert while testing 2.1;
@@ -110,11 +110,11 @@ const KIE_MODEL_NAME = "google/nano-banana-2-1";
 
 function buildKiePayload(prompt: string, imageUrl: string): Record<string, unknown> {
   const payloadByModel: Record<string, Record<string, unknown>> = {
-    "google/nano-banana-2-1": {
-      model: "google/nano-banana-2-1",
+    "nano-banana-2-1": {
+      model: "nano-banana-2-1",
       input: {
         prompt,
-        image_urls: [imageUrl],
+        image_input: [imageUrl],
         output_format: "png",
         aspect_ratio: "1:1",
         resolution: "1K",

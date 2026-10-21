@@ -12,6 +12,7 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY frontend/ ./frontend/
+COPY src/data/disposable-email-domains.json ./src/data/disposable-email-domains.json
 RUN yarn build:frontend
 
 # Stage 3: Runtime

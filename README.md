@@ -1,5 +1,12 @@
 # ImageTransformationTGBot-TS
 
+Одноразовая почта в зоне `.ru` при регистрации блокируется по списку
+[`src/data/disposable-email-domains.json`](src/data/disposable-email-domains.json).
+[Исследование сервисов, проверка ограничения `.ru` и обновление списка](docs/disposable-email-research.md).
+
+Журнал выполненных изменений хранится отдельными файлами в [docs/](docs/)
+с именами `NNN_ГГГГ-ММ-ДД_краткое-название.md`.
+
 ## Пробный запуск (локально через Yarn)
 
 ```bash

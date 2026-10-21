@@ -167,10 +167,7 @@ export async function startWebServer(bot: Bot): Promise<void> {
   await fastify.register(formbody);
   await fastify.register(multipart);
 
-  // Telegram WebApp static files (admin panel, payment pages)
-  await fastify.register(staticPlugin, { root: STATIC_DIR, prefix: "/", wildcard: false });
-
-  // Register web API routes
+  // Register web API routes first so /api/* endpoints are not swallowed by static handlers.
   registerMediaRoute(fastify);
   registerAuthRoutes(fastify);
   registerUploadRoute(fastify);
@@ -178,6 +175,9 @@ export async function startWebServer(bot: Bot): Promise<void> {
   registerReviewRoute(fastify);
   registerWebPaymentRoutes(fastify, bot);
   registerTrackingRoutes(fastify);
+
+  // Telegram WebApp static files (admin panel, payment pages)
+  await fastify.register(staticPlugin, { root: STATIC_DIR, prefix: "/", wildcard: false });
 
   // Frontend SPA (served only if frontend-dist exists)
   const fs = await import("node:fs");

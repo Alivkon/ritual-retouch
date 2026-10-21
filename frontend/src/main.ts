@@ -7,8 +7,9 @@ import { initResults } from "./pages/results.js";
 import { initGallery, initCompare } from "./pages/gallery.js";
 import { initWallet, updateWalletBalance } from "./pages/wallet.js";
 import { initReviewGallery } from "./pages/review-gallery.js";
-import { getMe, login, loginTelegramWebApp, register, logout, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
+import { getMe, login, loginTelegramWebApp, register, setToken, resendVerification, forgotPassword, resetPassword, sleep, getBalance, confirmYookassaPayment } from "./api.js";
 import type { User } from "./types.js";
+import { getRegistrationEmailError } from "./utils/registrationEmail.js";
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -41,11 +42,11 @@ function updateProfileUserLabel(): void {
   const label = document.getElementById("profile-user-label");
   const button = document.getElementById("profile-menu") as HTMLButtonElement | null;
   if (!label || !button) return;
+  button.title = "Регистрация";
 
   if (!currentUser) {
     label.textContent = "";
     label.hidden = true;
-    button.title = "Профиль";
     return;
   }
 
@@ -55,7 +56,6 @@ function updateProfileUserLabel(): void {
 
   label.textContent = displayName;
   label.hidden = false;
-  button.title = `Профиль: ${displayName}`;
 }
 
 async function refreshUserStats(): Promise<void> {
@@ -220,24 +220,6 @@ function showResetFormView(token: string): void {
   if (resetForm) resetForm.style.display = "";
 }
 
-function showRuDomainModal(): void {
-  const backdrop = document.getElementById("ru-domain-modal-backdrop");
-  const modal = document.getElementById("ru-domain-modal");
-  if (backdrop) backdrop.style.display = "";
-  if (modal) modal.style.display = "";
-  backdrop?.classList.add("show");
-  modal?.classList.add("show");
-}
-
-function hideRuDomainModal(): void {
-  const backdrop = document.getElementById("ru-domain-modal-backdrop");
-  const modal = document.getElementById("ru-domain-modal");
-  backdrop?.classList.remove("show");
-  modal?.classList.remove("show");
-  if (backdrop) backdrop.style.display = "none";
-  if (modal) modal.style.display = "none";
-}
-
 function setupAuthForm(): void {
   const overlay = document.getElementById("auth-overlay");
   if (!overlay) return;
@@ -251,6 +233,16 @@ function setupAuthForm(): void {
   let lastEmail = "";
 
   const forgotRow = document.getElementById("auth-forgot-row");
+
+  function updateRegistrationEmailError(): string | null {
+    if (!isRegister) return null;
+    const message = getRegistrationEmailError(emailInput?.value ?? "");
+    if (errorEl) {
+      errorEl.textContent = message ?? "";
+      errorEl.style.display = message ? "block" : "none";
+    }
+    return message;
+  }
 
   tabLogin?.addEventListener("click", () => {
     isRegister = false;
@@ -268,28 +260,20 @@ function setupAuthForm(): void {
     tabLogin?.classList.remove("active");
     if (submitBtn) {
       submitBtn.textContent = "Зарегистрироваться";
-      const val = emailInput?.value.trim() ?? "";
-      submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
+      submitBtn.disabled = false;
     }
     if (errorEl) errorEl.style.display = "none";
     if (forgotRow) forgotRow.style.display = "none";
     hideAuthInfo();
+    updateRegistrationEmailError();
   });
 
-  emailInput?.addEventListener("input", () => {
-    if (!isRegister || !submitBtn) return;
-    const val = emailInput.value.trim();
-    submitBtn.disabled = val.length > 0 && !val.toLowerCase().endsWith(".ru");
-  });
+  emailInput?.addEventListener("input", updateRegistrationEmailError);
 
   document.getElementById("auth-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const email = (document.getElementById("auth-email") as HTMLInputElement).value.trim();
-    if (isRegister && !email.toLowerCase().endsWith(".ru")) {
-      showRuDomainModal();
-      if (submitBtn) submitBtn.disabled = true;
-      return;
-    }
+    if (isRegister && updateRegistrationEmailError()) return;
     lastEmail = email;
     const password = (document.getElementById("auth-password") as HTMLInputElement).value;
     void handleAuthSubmit(email, password, isRegister, errorEl, submitBtn);
@@ -299,9 +283,6 @@ function setupAuthForm(): void {
     if (!lastEmail) return;
     void resendVerification(lastEmail).then((r) => showAuthInfo(r.message)).catch(() => undefined);
   });
-
-  document.getElementById("ru-domain-modal-close")?.addEventListener("click", hideRuDomainModal);
-  document.getElementById("ru-domain-modal-backdrop")?.addEventListener("click", hideRuDomainModal);
 
   document.getElementById("auth-forgot-link")?.addEventListener("click", (e) => {
     e.preventDefault();
@@ -413,21 +394,13 @@ async function handleAuthSubmit(
 // ── Profile menu ───────────────────────────────────────────────────────────
 
 function setupProfileMenu(): void {
-  const handleLogout = () => {
-    const displayName = currentUser?.username?.trim()
-      ? `@${currentUser.username.trim()}`
-      : (currentUser?.email?.trim() || "пользователь");
-
-    const confirmed = window.confirm(`Выйти из аккаунта ${displayName}?`);
-    if (!confirmed) return;
-    void logout().then(() => {
-      currentUser = null;
-      updateProfileUserLabel();
-      showAuthOverlay();
-    });
+  const openRegistration = () => {
+    pendingAfterAuth = null;
+    showAuthOverlay();
+    document.getElementById("tab-register")?.click();
   };
-  document.getElementById("profile-menu")?.addEventListener("click", handleLogout);
-  document.getElementById("mobile-profile-menu")?.addEventListener("click", handleLogout);
+  document.getElementById("profile-menu")?.addEventListener("click", openRegistration);
+  document.getElementById("mobile-profile-menu")?.addEventListener("click", openRegistration);
 }
 
 // ── Nav ────────────────────────────────────────────────────────────────────
