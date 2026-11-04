@@ -1,5 +1,5 @@
 # Stage 1: Build backend
-FROM node:22-slim AS builder
+FROM node:22.23.4-slim AS builder
 WORKDIR /app
 COPY package.json yarn.lock tsconfig.json ./
 RUN yarn install --frozen-lockfile
@@ -7,7 +7,7 @@ COPY src/ ./src/
 RUN yarn build
 
 # Stage 2: Build frontend
-FROM node:22-slim AS frontend-builder
+FROM node:22.23.4-slim AS frontend-builder
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
@@ -16,7 +16,7 @@ COPY src/data/disposable-email-domains.json ./src/data/disposable-email-domains.
 RUN yarn build:frontend
 
 # Stage 3: Runtime
-FROM node:22-slim
+FROM node:22.23.4-slim
 WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --production --frozen-lockfile
