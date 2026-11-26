@@ -1,5 +1,5 @@
 import { Bot } from "grammy";
-import { ADMIN_ID, BOT_TOKEN } from "./config.js";
+import { ADMIN_ID, BOT_TOKEN, WEBAPP_URL } from "./config.js";
 import { initDb } from "./database.js";
 import { adminNotifyMiddleware } from "./middlewares/adminNotify.js";
 import { paymentRouter } from "./handlers/payment.js";
@@ -7,6 +7,7 @@ import { startRouter } from "./handlers/start.js";
 import { generateRouter } from "./handlers/generate.js";
 import { startWebServer } from "./webServer.js";
 import { escapeTelegramHtml } from "./utils/telegramHtml.js";
+import { startYookassaPaymentReconciliation } from "./services/yookassaReconciliation.js";
 
 let activeBot: Bot | null = null;
 
@@ -110,9 +111,23 @@ async function main(): Promise<void> {
   activeBot = bot;
   registerLifecycleHandlers(bot);
 
+  // Кнопка меню бота открывает веб-приложение: при таком запуске Telegram
+  // передаёт initData, по которому сайт автоматически авторизует пользователя
+  // по его Telegram ID.
+  void bot.api
+    .setChatMenuButton({
+      menu_button: {
+        type: "web_app",
+        text: "Открыть приложение",
+        web_app: { url: WEBAPP_URL },
+      },
+    })
+    .catch((err) => console.warn("Failed to set chat menu button:", err));
+
   console.log("Starting bot...");
 
   await startWebServer(bot);
+  startYookassaPaymentReconciliation(bot);
   // При 409 Conflict (параллельный инстанс с тем же токеном) не останавливаем
   // polling навсегда, а повторяем попытку с задержкой.
   void runPolling(bot);

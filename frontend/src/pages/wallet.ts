@@ -1,4 +1,4 @@
-import { getBalance, createYookassaPayment, confirmYookassaPayment, getPayments } from "../api.js";
+import { getBalance, createYookassaPayment, confirmYookassaPayment, getPayments, openExternalUrl, type YookassaFlow } from "../api.js";
 import { notifications } from "../components/notifications.js";
 import type { User } from "../types.js";
 
@@ -113,8 +113,29 @@ async function handlePay(): Promise<void> {
   }
 }
 
+// Встроенный виджет ЮKassa ненадёжен на мобильных устройствах внутри WebView
+// Telegram (3-D Secure, переключения в банковские приложения) — на телефонах
+// используем redirect на полноценную страницу ЮKassa.
+function isMobileDevice(): boolean {
+  return /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+}
+
 async function handleYookassa(amount: number): Promise<void> {
-  const { confirmation_token, payment_id } = await createYookassaPayment(amount);
+  const flow: YookassaFlow = isMobileDevice() ? "redirect" : "widget";
+  const payment = await createYookassaPayment(amount, flow);
+
+  if (flow === "redirect") {
+    if (!payment.confirmation_url || !payment.payment_id) {
+      notifications.error("Не удалось создать платёж YooKassa");
+      return;
+    }
+    notifications.info("Переходим к защищённой странице оплаты ЮKassa…");
+    openExternalUrl(payment.confirmation_url);
+    return;
+  }
+
+  const confirmation_token = payment.confirmation_token;
+  const payment_id = payment.payment_id;
 
   if (!confirmation_token || !payment_id) {
     notifications.error("Не удалось создать платёж YooKassa");

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import type { Bot } from "grammy";
-import { notifyAdminPaymentSuccess } from "../middlewares/adminNotify.js";
+import { notifyAdminPaymentCreditFailure, notifyAdminPaymentSuccess } from "../middlewares/adminNotify.js";
 import {
   getUser,
   creditYookassaPayment,
@@ -9,6 +9,7 @@ import {
 import {
   PACKAGE_DEFINITIONS,
   TOPUP_OPTIONS,
+  WEBAPP_URL,
   YOOKASSA_SHOP_ID,
   YOOKASSA_SECRET_KEY,
 } from "../config.js";
@@ -23,7 +24,15 @@ async function yookassaCreatePayment(
   userId: number,
   amount: number,
   packageCode: string,
+  flow: "widget" | "redirect",
 ): Promise<Record<string, unknown>> {
+  // На мобильных устройствах встроенный виджет ненадёжен внутри WebView
+  // Telegram (3-D Secure, переключения в банковские приложения) — используем
+  // redirect-подтверждение на полноценной странице ЮKassa.
+  const confirmation =
+    flow === "redirect"
+      ? { type: "redirect", return_url: `${WEBAPP_URL}/?payment_success=1` }
+      : { type: "embedded" };
   const resp = await fetch("https://api.yookassa.ru/v3/payments", {
     method: "POST",
     headers: {
@@ -33,7 +42,7 @@ async function yookassaCreatePayment(
     },
     body: JSON.stringify({
       amount: { value: amount.toFixed(2), currency: "RUB" },
-      confirmation: { type: "embedded" },
+      confirmation,
       capture: true,
       description: `Пакет обработок ${packageCode} на ${amount}₽`,
       metadata: { user_id: String(userId), package_code: packageCode },
@@ -67,8 +76,9 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance, bot: Bot): vo
     const user = await requireAuth(req, reply);
     if (!user) return;
 
-    const body = req.body as { amount?: unknown };
+    const body = req.body as { amount?: unknown; flow?: unknown };
     const amount = parseInt(String(body.amount ?? ""), 10);
+    const flow = body.flow === "redirect" ? "redirect" : "widget";
 
     if (!(TOPUP_OPTIONS as readonly number[]).includes(amount)) {
       return reply.code(400).send({ error: `Invalid amount. Allowed: ${TOPUP_OPTIONS.join(", ")}` });
@@ -80,10 +90,15 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance, bot: Bot): vo
     }
 
     try {
-      const payment = await yookassaCreatePayment(user.user_id, amount, selectedPackage.code);
+      const payment = await yookassaCreatePayment(user.user_id, amount, selectedPackage.code, flow);
       const confirmation = payment["confirmation"] as Record<string, unknown> | undefined;
       const token = confirmation?.["confirmation_token"];
-      return reply.send({ confirmation_token: token, payment_id: payment["id"] });
+      const confirmationUrl = confirmation?.["confirmation_url"];
+      return reply.send({
+        confirmation_token: token,
+        confirmation_url: confirmationUrl,
+        payment_id: payment["id"],
+      });
     } catch (err) {
       fastify.log.error("YooKassa web payment error: %s", err);
       return reply.code(500).send({ error: "Payment creation failed" });
@@ -106,6 +121,12 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance, bot: Bot): vo
       payment = await yookassaFindPayment(paymentId);
     } catch (err) {
       fastify.log.error("YooKassa web confirm lookup error: %s", err);
+      await notifyAdminPaymentCreditFailure(bot.api, {
+        paymentId,
+        userId: user.user_id,
+        amount: null,
+        reason: "Не удалось проверить платёж через API YooKassa",
+      });
       return reply.code(502).send({ error: "Payment lookup failed" });
     }
 
@@ -123,15 +144,39 @@ export function registerWebPaymentRoutes(fastify: FastifyInstance, bot: Bot): vo
     const metadataUserId = parseInt(payment.metadata?.user_id ?? "0", 10);
     if (metadataUserId !== user.user_id) {
       fastify.log.warn("YooKassa web confirm metadata mismatch: payment=%s user=%s metadata=%s", paymentId, user.user_id, metadataUserId);
+      await notifyAdminPaymentCreditFailure(bot.api, {
+        paymentId,
+        userId: user.user_id,
+        amount: Number.isFinite(Number(payment.amount?.value)) ? Number(payment.amount?.value) : null,
+        reason: "Аккаунт авторизации не совпадает с user_id в платеже",
+      });
       return reply.code(403).send({ error: "Payment belongs to another user" });
     }
 
     const amount = parseFloat(payment.amount?.value ?? "0");
     if (!Number.isFinite(amount) || amount <= 0) {
+      await notifyAdminPaymentCreditFailure(bot.api, {
+        paymentId,
+        userId: user.user_id,
+        amount: null,
+        reason: "В платеже отсутствует корректная сумма",
+      });
       return reply.code(400).send({ error: "Invalid payment amount" });
     }
 
-    const result = await creditYookassaPayment({ userId: user.user_id, amount, yookassaPaymentId: paymentId });
+    let result: Awaited<ReturnType<typeof creditYookassaPayment>>;
+    try {
+      result = await creditYookassaPayment({ userId: user.user_id, amount, yookassaPaymentId: paymentId });
+    } catch (err) {
+      fastify.log.error({ err, paymentId, userId: user.user_id }, "Failed to credit YooKassa web payment");
+      await notifyAdminPaymentCreditFailure(bot.api, {
+        paymentId,
+        userId: user.user_id,
+        amount,
+        reason: "Ошибка записи оплаты или начисления в базе данных",
+      });
+      return reply.code(500).send({ error: "Payment credit failed" });
+    }
     if (result.credited) {
       await notifyAdminPaymentSuccess(bot.api, {
         userId: user.user_id,

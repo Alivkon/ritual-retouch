@@ -28,10 +28,10 @@ services:
       - uploads_data:/app/uploads
     networks:
       - ritual_retouch_internal
-      - n8n_default
+      - web_proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=n8n_default"
+      - "traefik.docker.network=web_proxy"
       - "traefik.http.routers.ritualretouch.rule=Host(`ritual-retouch.ru`)"
       - "traefik.http.routers.ritualretouch.entrypoints=websecure"
       - "traefik.http.routers.ritualretouch.tls=true"
@@ -44,5 +44,5 @@ volumes:
 
 networks:
   ritual_retouch_internal:
-  n8n_default:
+  web_proxy:
     external: true

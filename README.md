@@ -10,7 +10,7 @@
 ## Пробный запуск (локально через Yarn)
 
 ```bash
-cd /opt/bots/ImageTransformationTGBot-TS
+cd /opt/apps/ritual-retouch
 
 # 1. Создать .env с необходимыми переменными
 cp .env.example .env   # если есть шаблон, иначе создать вручную
@@ -66,7 +66,7 @@ docker compose -f docker-compose.dev.yml down
 ## Продакшн-деплой (Docker Compose на сервере)
 
 ```bash
-cd /opt/bots/ImageTransformationTGBot-TS
+cd /opt/apps/ritual-retouch
 
 # 1. Создать/проверить .env
 nano .env

@@ -3,6 +3,8 @@ import { ADMIN_ID, TOPUP_OPTIONS, WEBAPP_URL } from "../config.js";
 
 export function mainMenuKb(userId = 0): InlineKeyboard {
   const kb = new InlineKeyboard()
+    .webApp("🌐 Открыть приложение", WEBAPP_URL)
+    .row()
     .text("📷 Обработать фото", "generate")
     .row()
     .text("📦 Мой пакет", "balance")

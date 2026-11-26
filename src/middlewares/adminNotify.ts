@@ -21,12 +21,37 @@ export async function notifyAdminPaymentSuccess(
 
   const text =
     `💰 Оплата через ЮKassa\n` +
-    `👤 ${name} ${usernameStr} (${params.userId})\n` +
+    `👤 ${escapeTelegramHtml(name)} ${escapeTelegramHtml(usernameStr)} (${params.userId})\n` +
     `💳 Сумма: ${params.amount.toFixed(0)}₽\n` +
-    `📦 Пакет: ${params.packageTitle ?? "—"} | Доступно обработок: ${params.generationsRemaining}\n` +
-    `🧾 Платёж: ${params.paymentId}`;
+    `📦 Пакет: ${escapeTelegramHtml(params.packageTitle ?? "—")} | Доступно обработок: ${params.generationsRemaining}\n` +
+    `🧾 Платёж: ${escapeTelegramHtml(params.paymentId)}`;
 
-  await api.sendMessage(ADMIN_ID, text).catch(() => undefined);
+  try {
+    await api.sendMessage(ADMIN_ID, text);
+  } catch (err) {
+    console.error("Failed to send YooKassa payment success notification:", err);
+  }
+}
+
+export async function notifyAdminPaymentCreditFailure(
+  api: Api,
+  params: { paymentId: string; userId: number | null; amount: number | null; reason: string },
+): Promise<void> {
+  const amountText = params.amount === null ? "не удалось определить" : `${params.amount.toFixed(2)}₽`;
+  const userText = params.userId === null ? "не указан" : String(params.userId);
+  const text =
+    `🚨 YooKassa: требуется проверка платежа\n` +
+    `👤 Аккаунт: ${userText}\n` +
+    `💳 Сумма: ${amountText}\n` +
+    `🧾 Платёж: ${escapeTelegramHtml(params.paymentId)}\n` +
+    `⚠️ Причина: ${escapeTelegramHtml(params.reason)}\n` +
+    "Проверьте платёж и баланс в базе.";
+
+  try {
+    await api.sendMessage(ADMIN_ID, text);
+  } catch (err) {
+    console.error("Failed to notify admin about YooKassa credit failure:", err);
+  }
 }
 
 function isGenerationRequest(ctx: Context): boolean {

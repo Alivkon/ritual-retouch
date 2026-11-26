@@ -436,7 +436,18 @@ async function main(): Promise<void> {
   initTheme();
   setupAuthForm();
 
-  const telegramInitData = (window as typeof window & { Telegram?: { WebApp?: { initData?: string } } }).Telegram?.WebApp?.initData;
+  // Инициализация Telegram WebApp: сигнализируем о готовности и разворачиваем
+  // на весь экран, чтобы initData был доступен для автоавторизации.
+  type TgWebApp = { initData?: string; ready?: () => void; expand?: () => void };
+  const tg = (window as typeof window & { Telegram?: { WebApp?: TgWebApp } }).Telegram?.WebApp;
+  try {
+    tg?.ready?.();
+    tg?.expand?.();
+  } catch {
+    // Вне Telegram-клиента вызовы недоступны — не критично.
+  }
+
+  const telegramInitData = typeof tg?.initData === "string" ? tg.initData : "";
   if (telegramInitData) {
     try {
       const resp = await loginTelegramWebApp(telegramInitData);

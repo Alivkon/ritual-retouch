@@ -153,11 +153,29 @@ export async function getPayments(): Promise<{ id: number; amount: number; packa
 }
 
 // Payments
-export async function createYookassaPayment(amount: number): Promise<{ confirmation_token: string; payment_id: string }> {
+export type YookassaFlow = "widget" | "redirect";
+
+export async function createYookassaPayment(
+  amount: number,
+  flow: YookassaFlow = "widget",
+): Promise<{ confirmation_token?: string; confirmation_url?: string; payment_id: string }> {
   return request("/api/web/payment/yookassa", {
     method: "POST",
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, flow }),
   });
+}
+
+// Открывает ссылку во внешнем браузере, если приложение запущено внутри
+// Telegram (WebView не поддерживает переключения в банковские приложения
+// при оплате). Вне Telegram — обычная навигация.
+export function openExternalUrl(url: string): void {
+  type TgWebApp = { openLink?: (url: string) => void };
+  const tg = (window as typeof window & { Telegram?: { WebApp?: TgWebApp } }).Telegram?.WebApp;
+  if (typeof tg?.openLink === "function") {
+    tg.openLink(url);
+    return;
+  }
+  window.location.assign(url);
 }
 
 export async function confirmYookassaPayment(paymentId: string): Promise<{

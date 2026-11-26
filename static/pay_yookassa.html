@@ -166,10 +166,11 @@
             }
 
             try {
+                const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
                 const res = await fetch("/api/payment/create", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId, amount: selectedAmount }),
+                    body: JSON.stringify({ user_id: userId, amount: selectedAmount, flow: isMobile ? "redirect" : "widget" }),
                 });
 
                 if (!res.ok) {
@@ -177,7 +178,25 @@
                     throw new Error(data.error || `Ошибка сервера: ${res.status}`);
                 }
 
-                const { confirmation_token, payment_id } = await res.json();
+                const { confirmation_token, confirmation_url, payment_id } = await res.json();
+
+                // На мобильных устройствах встроенный виджет ненадёжен внутри
+                // WebView Telegram — открываем страницу оплаты ЮKassa во
+                // внешнем браузере (переключения в банковские приложения
+                // работают только там).
+                if (isMobile) {
+                    if (!confirmation_url || !payment_id) {
+                        throw new Error("Не удалось создать платёж.");
+                    }
+                    payBtn.textContent = "Переходим к оплате...";
+                    if (typeof tg.openLink === "function") {
+                        tg.openLink(confirmation_url);
+                    } else {
+                        window.location.href = confirmation_url;
+                    }
+                    return;
+                }
+
                 if (!confirmation_token || !payment_id) {
                     throw new Error("Не удалось создать платёж.");
                 }

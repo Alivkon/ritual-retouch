@@ -146,6 +146,16 @@ export async function initDb(): Promise<void> {
     await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_telegram_charge_id ON payments (telegram_charge_id) WHERE telegram_charge_id IS NOT NULL`);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS yookassa_payment_alerts (
+        payment_id TEXT PRIMARY KEY,
+        first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        notified_at TIMESTAMPTZ,
+        resolved_at TIMESTAMPTZ
+      )
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS user_packages (
         id BIGSERIAL PRIMARY KEY,
         account_id BIGINT NOT NULL UNIQUE REFERENCES accounts(id) ON DELETE CASCADE,
@@ -517,6 +527,43 @@ async function getPackageByAmount(amount: number): Promise<{ id: number; title: 
     [amount],
   );
   return result.rows[0] ?? null;
+}
+
+export async function hasYookassaPayment(paymentId: string): Promise<boolean> {
+  const result = await pool.query<{ exists: boolean }>(
+    "SELECT EXISTS (SELECT 1 FROM payments WHERE yookassa_payment_id = $1) AS exists",
+    [paymentId],
+  );
+  return result.rows[0]?.exists === true;
+}
+
+export async function claimMissingYookassaPaymentAlert(paymentId: string): Promise<boolean> {
+  const result = await pool.query<{ payment_id: string }>(
+    `INSERT INTO yookassa_payment_alerts (payment_id)
+     SELECT $1
+     WHERE NOT EXISTS (SELECT 1 FROM payments WHERE yookassa_payment_id = $1)
+     ON CONFLICT (payment_id) DO UPDATE
+       SET last_attempt_at = NOW(), resolved_at = NULL
+       WHERE yookassa_payment_alerts.notified_at IS NULL
+         AND yookassa_payment_alerts.last_attempt_at < NOW() - INTERVAL '10 minutes'
+     RETURNING payment_id`,
+    [paymentId],
+  );
+  return result.rows.length > 0;
+}
+
+export async function markMissingYookassaPaymentAlertNotified(paymentId: string): Promise<void> {
+  await pool.query(
+    "UPDATE yookassa_payment_alerts SET notified_at = NOW() WHERE payment_id = $1",
+    [paymentId],
+  );
+}
+
+export async function resolveMissingYookassaPaymentAlert(paymentId: string): Promise<void> {
+  await pool.query(
+    "UPDATE yookassa_payment_alerts SET resolved_at = COALESCE(resolved_at, NOW()) WHERE payment_id = $1",
+    [paymentId],
+  );
 }
 
 async function ensureTelegramAccount(client: PoolClient, telegramUserId: number, username?: string): Promise<number> {
